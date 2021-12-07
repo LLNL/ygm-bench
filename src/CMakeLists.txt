@@ -1,0 +1,3 @@
+setup_ygm_target(around_the_world_ygm)
+
+setup_mpi_target(around_the_world_mpi)

@@ -8,15 +8,32 @@ set(CMAKE_CXX_STANDARD 17)
 
 include(FetchContent)
 
+#
+#  MPI
+find_package(MPI)
+
+# 
+#  cereal 
+find_package(cereal QUIET) 
+if (NOT cereal_FOUND)     
+	set(JUST_INSTALL_CEREAL TRUE)
+	FetchContent_Declare(cereal             
+		GIT_REPOSITORY https://github.com/USCiLab/cereal.git             
+		GIT_TAG master             
+		)     
+	FetchContent_MakeAvailable(cereal) 
+endif ()
+
+#
+#  ygm
 find_package(ygm CONFIG)
 if(NOT ygm_FOUND)
 	FetchContent_Declare(
 	ygm
-	GIT_REPOSITORY https://github.com/LLNL/ygm
+	GIT_REPOSITORY https://github.com/LLNL/ygm.git
 	GIT_TAG        develop         
 	)         
 	set(JUST_INSTALL_YGM ON)
-	set(YGM_INSTALL ON)
 	FetchContent_MakeAvailable(ygm)
 	message(STATUS "Cloned ygm dependency " ${ygm_SOURCE_DIR})
 else()
@@ -25,6 +42,11 @@ endif()
 
 function(setup_ygm_target exe_name)
 	target_link_libraries(${exe_name} PRIVATE ygm::ygm)
+endfunction()
+
+function(setup_mpi_target exe_name)
+	add_executable(${exe_name} ${exe_name}.cpp)
+	target_link_libraries(${exe_name} PRIVATE MPI::MPI_CXX)
 endfunction()
 
 add_subdirectory(src)

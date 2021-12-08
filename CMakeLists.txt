@@ -1,3 +1,8 @@
+# Copyright 2019-2021 Lawrence Livermore National Security, LLC and other YGM
+# Project Developers. See the top-level COPYRIGHT file for details.
+#
+# SPDX-License-Identifier: MIT
+
 cmake_minimum_required(VERSION 3.14) 
 project(ygm-bench         
 	VERSION 0.1         
@@ -41,6 +46,7 @@ else()
 endif()
 
 function(setup_ygm_target exe_name)
+	add_executable(${exe_name} ${exe_name}.cpp)
 	target_link_libraries(${exe_name} PRIVATE ygm::ygm)
 endfunction()
 

@@ -50,6 +50,11 @@ function(setup_ygm_target exe_name)
 	target_link_libraries(${exe_name} PRIVATE ygm::ygm)
 endfunction()
 
+if (NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE Release)
+	message(STATUS "CMAKE_BUILD_TYPE is set as Release")
+endif ()
+
 function(setup_mpi_target exe_name)
 	add_executable(${exe_name} ${exe_name}.cpp)
 	target_link_libraries(${exe_name} PRIVATE MPI::MPI_CXX)

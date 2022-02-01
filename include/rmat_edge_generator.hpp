@@ -127,6 +127,7 @@ class rmat_edge_generator {
 
   template <typename Function>
   void for_all(Function fn) {
+    m_gen.seed(m_seed);
     for (uint64_t i = 0; i < m_edge_count; ++i) {
       const auto [src, dest] = generate_edge();
       fn(src, dest);

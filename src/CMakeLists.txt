@@ -6,5 +6,6 @@
 setup_ygm_target(around_the_world_ygm)
 setup_ygm_target(agups_ygm)
 setup_ygm_target(histo_ygm)
+setup_ygm_target(rmat_example)
 
 setup_mpi_target(around_the_world_mpi)

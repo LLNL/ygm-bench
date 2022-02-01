@@ -103,9 +103,10 @@ class rmat_edge_generator {
   typedef value_type                    edge_type;
 
   /// seed used to be 5489
-  rmat_edge_generator(uint64_t seed, uint64_t vertex_scale, uint64_t edge_count,
-                      double a, double b, double c, double d, bool scramble,
-                      bool undirected)
+  rmat_edge_generator(uint64_t vertex_scale, uint64_t edge_count,
+                      uint64_t seed = 1234, bool scramble = true,
+                      bool undirected = false, double a = 0.57, double b = 0.19,
+                      double c = 0.19, double d = 0.05)
       : m_seed(seed),
         m_gen(seed),
         m_distribution(0.0, 1.0),
@@ -202,16 +203,17 @@ class rmat_edge_generator {
 // RMAT generator that splits edge generation responsibilities across ranks
 class distributed_rmat_edge_generator {
  public:
-  distributed_rmat_edge_generator(ygm::comm &world, uint64_t seed,
-                                  uint64_t vertex_scale,
-                                  uint64_t global_edge_count, double a,
-                                  double b, double c, double d,
-                                  bool scramble = true, bool undirected = false)
+  distributed_rmat_edge_generator(ygm::comm &world, uint64_t vertex_scale,
+                                  uint64_t global_edge_count,
+                                  uint64_t seed = 1234, bool scramble = true,
+                                  bool undirected = false, double a = 0.57,
+                                  double b = 0.19, double c = 0.19,
+                                  double d = 0.05)
       : m_local_generator(
-            seed * (world.rank() + 1), vertex_scale,
+            vertex_scale,
             global_edge_count / world.size() +
                 (world.rank() < (global_edge_count % world.size())),
-            a, b, c, d, scramble, undirected) {}
+            seed * (world.rank() + 1), scramble, undirected, a, b, c, d) {}
 
   template <typename Function>
   void for_all(Function fn) {

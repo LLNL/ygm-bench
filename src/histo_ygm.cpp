@@ -10,71 +10,93 @@
 #include <ygm/utility.hpp>
 
 int main(int argc, char **argv) {
-  ygm::comm world(&argc, &argv);
+  int provided;
+  MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+  if (provided != MPI_THREAD_MULTIPLE) {
+    throw std::runtime_error(
+        "MPI_Init_thread: MPI_THREAD_MULTIPLE not provided.");
+  }
 
-  int     log_global_table_size{atoi(argv[1])};
-  int64_t local_updates{atoll(argv[2])};
-  int     num_trials{atoi(argv[3])};
+  {
+    int ygm_buffer_capacity = atoi(argv[1]);
 
-  uint64_t global_table_size = ((uint64_t)1) << log_global_table_size;
-  world.cout0("Creating global table with size ", global_table_size);
-  ygm::container::array<uint64_t> arr(world, global_table_size);
+    ygm::comm world(MPI_COMM_WORLD, ygm_buffer_capacity);
 
-  std::mt19937                            gen(world.rank());
-  std::uniform_int_distribution<uint64_t> dist(0, global_table_size - 1);
+    int     log_global_table_size{atoi(argv[2])};
+    int64_t local_updates{atoll(argv[3])};
+    int     num_trials{atoi(argv[4])};
 
-  double total_update_time{0.0};
-
-  world.cout0("Global table size ", arr.size());
-
-  for (int trial = 0; trial < num_trials; ++trial) {
-    std::vector<uint64_t> indices(local_updates);
-
-    for (int64_t i = 0; i < local_updates; ++i) {
-      indices[i] = dist(gen);
+    uint64_t global_table_size = ((uint64_t)1) << log_global_table_size;
+    // world.cout0("Creating global table with size ", global_table_size);
+    if (world.rank0()) {
+      std::cout << world.layout().node_size() << ", "
+                << world.layout().local_size() << ", " << ygm_buffer_capacity
+                << ", " << global_table_size << ", "
+                << local_updates * world.size();
     }
 
-    world.barrier();
+    ygm::container::array<uint64_t> arr(world, global_table_size);
 
-    ygm::timer update_timer{};
+    std::mt19937                            gen(world.rank());
+    std::uniform_int_distribution<uint64_t> dist(0, global_table_size - 1);
 
-    for (const auto &index : indices) {
-      arr.async_visit(index, [](const auto i, auto v) { ++v; });
+    double total_update_time{0.0};
+
+    for (int trial = 0; trial < num_trials; ++trial) {
+      std::vector<uint64_t> indices(local_updates);
+
+      for (int64_t i = 0; i < local_updates; ++i) {
+        indices[i] = dist(gen);
+      }
+
+      world.barrier();
+
+      ygm::timer update_timer{};
+
+      for (const auto &index : indices) {
+        arr.async_visit(index, [](const auto i, auto v) { ++v; });
+      }
+
+      world.barrier();
+
+      double trial_time = update_timer.elapsed();
+
+      if (world.rank0()) {
+        double trial_rate =
+            local_updates * world.size() / trial_time / (1000 * 1000 * 1000);
+        // std::cout << "Trial " << trial + 1 << std::endl;
+        // std::cout << "Time: " << trial_time << " sec\n"
+        //<< "Updates per second (billions): " << trial_rate << "\n"
+        //<< std::endl;
+        if (world.rank0()) {
+          std::cout << ", " << trial_time << ", " << trial_rate;
+        }
+      }
+
+      total_update_time += trial_time;
     }
 
-    world.barrier();
-
-    double trial_time = update_timer.elapsed();
+    uint64_t global_bytes = world.global_bytes_sent();
+    uint64_t global_message_bytes =
+        local_updates * world.size() * num_trials * 8;
 
     if (world.rank0()) {
-      double trial_rate =
-          local_updates * world.size() / trial_time / (1000 * 1000 * 1000);
-      std::cout << "Trial " << trial + 1 << std::endl;
-      std::cout << "Time: " << trial_time << " sec\n"
-                << "Updates per second (billions): " << trial_rate << "\n"
-                << std::endl;
+      double average_rate = local_updates * world.size() * num_trials /
+                            total_update_time / (1000 * 1000 * 1000);
+      // std::cout << "Average updates per second (billions): " << average_rate
+      //<< std::endl;
+      // std::cout << "Average bandwidth per rank (GB/s): "
+      //<< global_bytes / total_update_time / world.size() /
+      //(1024 * 1024 * 1024)
+      //<< std::endl;
+      // std::cout << "Average useful bandwidth per rank (GB/s): "
+      //<< global_message_bytes / total_update_time / world.size() /
+      //(1024 * 1024 * 1024)
+      //<< std::endl;
+
+      std::cout << std::endl;
     }
-
-    total_update_time += trial_time;
   }
 
-  uint64_t global_bytes         = world.global_bytes_sent();
-  uint64_t global_message_bytes = local_updates * world.size() * num_trials * 8;
-
-  if (world.rank0()) {
-    double average_rate = local_updates * world.size() * num_trials /
-                          total_update_time / (1000 * 1000 * 1000);
-    std::cout << "Average updates per second (billions): " << average_rate
-              << std::endl;
-    std::cout << "Average bandwidth per rank (GB/s): "
-              << global_bytes / total_update_time / world.size() /
-                     (1024 * 1024 * 1024)
-              << std::endl;
-    std::cout << "Average useful bandwidth per rank (GB/s): "
-              << global_message_bytes / total_update_time / world.size() /
-                     (1024 * 1024 * 1024)
-              << std::endl;
-  }
-
-  return 0;
+  MPI_Finalize();
 }

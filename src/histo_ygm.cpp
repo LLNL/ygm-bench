@@ -68,9 +68,8 @@ int main(int argc, char **argv) {
         // std::cout << "Time: " << trial_time << " sec\n"
         //<< "Updates per second (billions): " << trial_rate << "\n"
         //<< std::endl;
-        if (world.rank0()) {
-          std::cout << ", " << trial_time << ", " << trial_rate;
-        }
+
+        std::cout << ", " << trial_time << ", " << trial_rate;
       }
 
       total_update_time += trial_time;

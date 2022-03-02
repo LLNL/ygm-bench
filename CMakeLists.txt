@@ -35,8 +35,10 @@ find_package(ygm CONFIG)
 if(NOT ygm_FOUND)
 	FetchContent_Declare(
 	ygm
-	GIT_REPOSITORY https://github.com/LLNL/ygm.git
-	GIT_TAG        develop         
+	#GIT_REPOSITORY https://github.com/LLNL/ygm.git
+	#GIT_TAG        develop         
+	GIT_REPOSITORY https://github.com/steiltre/ygm.git
+	GIT_TAG        feature/routing         
 	)         
 	set(JUST_INSTALL_YGM ON)
 	FetchContent_MakeAvailable(ygm)

@@ -31,8 +31,8 @@ int main(int argc, char **argv) {
     if (world.rank0()) {
       std::cout << world.layout().node_size() << ", "
                 << world.layout().local_size() << ", " << ygm_buffer_capacity
-                << ", " << global_table_size << ", "
-                << local_updates * world.size();
+                << ", " << world.routing_protocol() << ", " << global_table_size
+                << ", " << local_updates * world.size();
     }
 
     ygm::container::array<uint64_t> arr(world, global_table_size);

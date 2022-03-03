@@ -1,12 +1,13 @@
 #! /usr/bin/env bash
 
 # Define experiment variables. Can be overridden safely by individual experiments
-# Bash arrays cannot be exported, so these values are set here and cannot be changed by subscripts without being reset
-export YGM_BENCH_NODES=(4 8 16 32)
+YGM_BENCH_NODES=(1 2)
 export YGM_BENCH_MACHINE=$(hostname | sed 's/[0-9]*//g')
-export YGM_BENCH_BUFFER_CAPACITIES=(16777216 33554432 67108864)
 export YGM_BENCH_GCC_VERSION=$(gcc --version | grep -E -o "[0-9]+\.[0-9]+\.[0-9]+" | head -n 1)
 export YGM_BENCH_PROCS_PER_NODE=$(nproc)
+
+export YGM_BENCH_YGM_REPO="https://github.com/steiltre/ygm.git"
+export YGM_BENCH_YGM_TAG="feature/routing"
 
 # Build ygm-bench
 cd ..
@@ -26,7 +27,7 @@ cd ../../..
 export YGM_BENCH_OUTPUT_DIR="/p/lustre1/steil1/experiments/ygm_bench_results/${YGM_BENCH_MACHINE}/ygm-bench_${ygm_bench_hash}/ygm_${ygm_hash}/gcc_${YGM_BENCH_GCC_VERSION}"
 mkdir -p ${YGM_BENCH_OUTPUT_DIR}
 
-YGM_BINARY_DIR="${YGM_BENCH_OUTPUT_DIR}/src"
+export YGM_BINARY_DIR="${YGM_BENCH_OUTPUT_DIR}/src"
 
 # Copy build directory to avoid issues if build directory is deleted or code is recompiled before tests run
 cp -r build/src ${YGM_BINARY_DIR}
@@ -36,5 +37,11 @@ cp -r scripts ${YGM_BENCH_OUTPUT_DIR}
 export LAUNCH_PREFIX="srun -D ${YGM_BENCH_OUTPUT_DIR}"
 cd ${YGM_BENCH_OUTPUT_DIR}/scripts
 
+. prepare_headers.sh
+
 # Run individual test scripts
-. run_histo_ygm.sh
+for nodes in "${YGM_BENCH_NODES[@]}"; do
+	salloc -N ${nodes} -t 24:00:00 ./run_experiment_loop.sh &
+done
+
+wait

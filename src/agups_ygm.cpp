@@ -69,14 +69,22 @@ int main(int argc, char **argv) {
   std::mt19937                            gen(world.rank());
   std::uniform_int_distribution<uint64_t> dist;
 
-  world.cout0("Initializing array values");
+  if (world.arnk0()) {
+    std::cout << world.layout().node_size() << ", "
+              << world.layout().local_size() << ", " << ygm_buffer_capacity
+              << ", " << world.routing_protocol() << ", " << global_table_size
+              << ", " << local_updaters * world.size() << ", "
+              << updater_lifetime;
+  }
+
+  // world.cout0("Initializing array values");
   arr.for_all(
       [&dist, &gen](const auto index, auto &value) { value = dist(gen); });
 
   double total_update_time{0.0};
 
   world.cf_barrier();
-  world.cout0("Beginning AGUPS trials");
+  // world.cout0("Beginning AGUPS trials");
 
   for (int trial = 0; trial < num_trials; ++trial) {
     std::vector<updater> updater_vec;
@@ -101,8 +109,10 @@ int main(int argc, char **argv) {
     if (world.rank0()) {
       double trial_gups = local_updaters * world.size() * updater_lifetime /
                           trial_time / (1000 * 1000 * 1000);
-      std::cout << "Trial " << trial + 1 << " GUPS: " << trial_gups
-                << std::endl;
+      // std::cout << "Trial " << trial + 1 << " GUPS: " << trial_gups
+      //<< std::endl;
+
+      std::cout << ", " << trial_time << ", " << trial_gups;
     }
 
     total_update_time += trial_time;
@@ -111,7 +121,9 @@ int main(int argc, char **argv) {
   if (world.rank0()) {
     double gups = local_updaters * world.size() * num_trials *
                   updater_lifetime / total_update_time / (1000 * 1000 * 1000);
-    std::cout << "Average GUPS: " << gups << std::endl;
+    // std::cout << "Average GUPS: " << gups << std::endl;
+
+    std::cout << std::endl;
   }
 
   return 0;

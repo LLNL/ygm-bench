@@ -56,75 +56,85 @@ struct recursive_functor {
 };
 
 int main(int argc, char **argv) {
-  ygm::comm world(&argc, &argv);
-
-  int     log_global_table_size{atoi(argv[1])};
-  int64_t local_updaters{atoll(argv[2])};
-  updater_lifetime = atoi(argv[3]);
-  int num_trials{atoi(argv[4])};
-
-  uint64_t global_table_size = ((uint64_t)1) << log_global_table_size;
-  ygm::container::array<uint64_t> arr(world, global_table_size);
-
-  std::mt19937                            gen(world.rank());
-  std::uniform_int_distribution<uint64_t> dist;
-
-  if (world.arnk0()) {
-    std::cout << world.layout().node_size() << ", "
-              << world.layout().local_size() << ", " << ygm_buffer_capacity
-              << ", " << world.routing_protocol() << ", " << global_table_size
-              << ", " << local_updaters * world.size() << ", "
-              << updater_lifetime;
+  int provided;
+  MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+  if (provided != MPI_THREAD_MULTIPLE) {
+    throw std::runtime_error(
+        "MPI_Init_thread: MPI_THREAD_MULTIPLE not provided.");
   }
 
-  // world.cout0("Initializing array values");
-  arr.for_all(
-      [&dist, &gen](const auto index, auto &value) { value = dist(gen); });
+  {
+    int       ygm_buffer_capacity = atoi(argv[1]);
+    ygm::comm world(MPI_COMM_WORLD, ygm_buffer_capacity);
 
-  double total_update_time{0.0};
+    int     log_global_table_size{atoi(argv[2])};
+    int64_t local_updaters{atoll(argv[3])};
+    updater_lifetime = atoi(argv[4]);
+    int num_trials{atoi(argv[5])};
 
-  world.cf_barrier();
-  // world.cout0("Beginning AGUPS trials");
+    uint64_t global_table_size = ((uint64_t)1) << log_global_table_size;
+    ygm::container::array<uint64_t> arr(world, global_table_size);
 
-  for (int trial = 0; trial < num_trials; ++trial) {
-    std::vector<updater> updater_vec;
-
-    for (int64_t i = 0; i < local_updaters; ++i) {
-      updater_vec.emplace_back(updater(dist(gen)));
-    }
-
-    world.barrier();
-
-    ygm::timer update_timer{};
-
-    for (auto &u : updater_vec) {
-      uint64_t first_index = u.get_state() & (arr.size() - 1);
-      arr.async_visit(first_index, recursive_functor(), u);
-    }
-
-    world.barrier();
-
-    double trial_time = update_timer.elapsed();
+    std::mt19937                            gen(world.rank());
+    std::uniform_int_distribution<uint64_t> dist;
 
     if (world.rank0()) {
-      double trial_gups = local_updaters * world.size() * updater_lifetime /
-                          trial_time / (1000 * 1000 * 1000);
-      // std::cout << "Trial " << trial + 1 << " GUPS: " << trial_gups
-      //<< std::endl;
-
-      std::cout << ", " << trial_time << ", " << trial_gups;
+      std::cout << world.layout().node_size() << ", "
+                << world.layout().local_size() << ", " << ygm_buffer_capacity
+                << ", " << world.routing_protocol() << ", " << global_table_size
+                << ", " << local_updaters * world.size() << ", "
+                << updater_lifetime;
     }
 
-    total_update_time += trial_time;
+    // world.cout0("Initializing array values");
+    arr.for_all(
+        [&dist, &gen](const auto index, auto &value) { value = dist(gen); });
+
+    double total_update_time{0.0};
+
+    world.cf_barrier();
+    // world.cout0("Beginning AGUPS trials");
+
+    for (int trial = 0; trial < num_trials; ++trial) {
+      std::vector<updater> updater_vec;
+
+      for (int64_t i = 0; i < local_updaters; ++i) {
+        updater_vec.emplace_back(updater(dist(gen)));
+      }
+
+      world.barrier();
+
+      ygm::timer update_timer{};
+
+      for (auto &u : updater_vec) {
+        uint64_t first_index = u.get_state() & (arr.size() - 1);
+        arr.async_visit(first_index, recursive_functor(), u);
+      }
+
+      world.barrier();
+
+      double trial_time = update_timer.elapsed();
+
+      if (world.rank0()) {
+        double trial_gups = local_updaters * world.size() * updater_lifetime /
+                            trial_time / (1000 * 1000 * 1000);
+        // std::cout << "Trial " << trial + 1 << " GUPS: " << trial_gups
+        //<< std::endl;
+
+        std::cout << ", " << trial_time << ", " << trial_gups;
+      }
+
+      total_update_time += trial_time;
+    }
+
+    if (world.rank0()) {
+      double gups = local_updaters * world.size() * num_trials *
+                    updater_lifetime / total_update_time / (1000 * 1000 * 1000);
+      // std::cout << "Average GUPS: " << gups << std::endl;
+
+      std::cout << std::endl;
+    }
   }
 
-  if (world.rank0()) {
-    double gups = local_updaters * world.size() * num_trials *
-                  updater_lifetime / total_update_time / (1000 * 1000 * 1000);
-    // std::cout << "Average GUPS: " << gups << std::endl;
-
-    std::cout << std::endl;
-  }
-
-  return 0;
+  MPI_Finalize();
 }

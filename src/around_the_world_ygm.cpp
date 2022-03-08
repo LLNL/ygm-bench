@@ -58,5 +58,9 @@ int main(int argc, char **argv) {
     }
   }
 
+  if (world.rank0()) {
+    std::cout << std::endl;
+  }
+
   return 0;
 }

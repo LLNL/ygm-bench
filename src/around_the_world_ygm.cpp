@@ -25,21 +25,38 @@ int main(int argc, char **argv) {
   ygm::comm world(&argc, &argv);
 
   num_trips = atoi(argv[1]);
-
-  world.barrier();
-
-  ygm::timer trip_timer{};
+  int num_trials{atoi(argv[2])};
 
   if (world.rank0()) {
-    world.async(1, around_the_world_functor());
+    std::cout << world.layout().node_size() << ", "
+              << world.layout().local_size() << ", " << world.routing_protocol()
+              << ", " << num_trips;
   }
 
   world.barrier();
 
-  double elapsed = trip_timer.elapsed();
+  for (int trial = 0; trial < num_trials; ++trial) {
+    curr_trip = 0;
+    world.barrier();
 
-  world.cout0("Went around the world ", num_trips, " times in ", elapsed,
-              " seconds\nAverage trip time: ", elapsed / num_trips);
+    ygm::timer trip_timer{};
+
+    if (world.rank0()) {
+      world.async(1, around_the_world_functor());
+    }
+
+    world.barrier();
+
+    double elapsed = trip_timer.elapsed();
+
+    // world.cout0("Went around the world ", num_trips, " times in ", elapsed,
+    //" seconds\nAverage trip time: ", elapsed / num_trips);
+
+    if (world.rank0()) {
+      auto total_hops = trips * world.size();
+      std::cout << ", " << elapsed << ", " << total_hops / elapsed;
+    }
+  }
 
   return 0;
 }

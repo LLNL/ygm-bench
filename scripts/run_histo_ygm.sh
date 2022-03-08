@@ -3,7 +3,6 @@
 YGM_BENCH_BUFFER_CAPACITIES=(16777216 33554432 67108864)
 YGM_ROUTING_PROTOCOLS=("YGM_ROUTING_PROTOCOL_DIRECT" "YGM_ROUTING_PROTOCOL_NR")
 
-global_log_table_sizes=(24 25 26 27)
 global_log_table_size=$(echo ${SLURM_JOB_NUM_NODES} | python3 -c "import math; print(24+round(math.log2(float(input()))))")
 local_updates=1000000
 num_trials=10

@@ -2,3 +2,4 @@
 
 . run_histo_ygm.sh
 . run_agups_ygm.sh
+. run_around_the_world_ygm.sh

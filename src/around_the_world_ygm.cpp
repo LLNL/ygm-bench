@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
     //" seconds\nAverage trip time: ", elapsed / num_trips);
 
     if (world.rank0()) {
-      auto total_hops = trips * world.size();
+      auto total_hops = num_trips * world.size();
       std::cout << ", " << elapsed << ", " << total_hops / elapsed;
     }
   }

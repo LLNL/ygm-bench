@@ -10,42 +10,54 @@
 int main(int argc, char **argv) {
   MPI_Init(&argc, &argv);
 
-  int num_trips = atoi(argv[1]);
+  int num_trips  = atoi(argv[1]);
+  int num_trials = atoi(argv[2]);
 
   int mpi_rank;
   int mpi_size;
   MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
-  MPI_Barrier(MPI_COMM_WORLD);
-  double start = MPI_Wtime();
+  const char *num_nodes          = std::getenv("SLURM_JOB_NUM_NODES");
+  const char *num_tasks_per_node = std::getenv("SLURM_NTASKS_PER_NODE");
+  std::string num_nodes_str(num_nodes ? num_nodes : "");
+  std::string num_tasks_per_node_str(num_tasks_per_node ? num_tasks_per_node
+                                                        : "");
 
-  for (int i = 0; i < num_trips; ++i) {
+  if (mpi_rank == 0) {
+    std::cout << num_nodes_str << ", " << num_tasks_per_node_str << ", "
+              << num_trips;
+  }
+
+  for (int trial = 0; trial < num_trials; ++trial) {
+    MPI_Barrier(MPI_COMM_WORLD);
+    double start = MPI_Wtime();
+
+    for (int i = 0; i < num_trips; ++i) {
+      if (mpi_rank == 0) {
+        MPI_Ssend(NULL, 0, MPI_BYTE, (mpi_rank + 1) % mpi_size, 0,
+                  MPI_COMM_WORLD);
+        MPI_Recv(NULL, 0, MPI_BYTE, (mpi_rank + mpi_size - 1) % mpi_size, 0,
+                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      } else {
+        MPI_Recv(NULL, 0, MPI_BYTE, (mpi_rank + mpi_size - 1) % mpi_size, 0,
+                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Ssend(NULL, 0, MPI_BYTE, (mpi_rank + 1) % mpi_size, 0,
+                  MPI_COMM_WORLD);
+      }
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    double elapsed = MPI_Wtime() - start;
+
     if (mpi_rank == 0) {
-      MPI_Ssend(NULL, 0, MPI_BYTE, (mpi_rank + 1) % mpi_size, 0,
-                MPI_COMM_WORLD);
-      // std::cout << "Rank " << mpi_rank << " sent" << std::endl;
-      MPI_Recv(NULL, 0, MPI_BYTE, (mpi_rank + mpi_size - 1) % mpi_size, 0,
-               MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      // std::cout << "Rank " << mpi_rank << " received" << std::endl;
-    } else {
-      MPI_Recv(NULL, 0, MPI_BYTE, (mpi_rank + mpi_size - 1) % mpi_size, 0,
-               MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      // std::cout << "Rank " << mpi_rank << " received" << std::endl;
-      MPI_Ssend(NULL, 0, MPI_BYTE, (mpi_rank + 1) % mpi_size, 0,
-                MPI_COMM_WORLD);
-      // std::cout << "Rank " << mpi_rank << " sent" << std::endl;
+      auto total_hops = num_trips * mpi_size;
+      std::cout << ", " << elapsed << ", " << total_hops / elapsed;
     }
   }
 
-  MPI_Barrier(MPI_COMM_WORLD);
-  double elapsed = MPI_Wtime() - start;
-
   if (mpi_rank == 0) {
-    std::cout << "Went around the world " << num_trips << " times in "
-              << elapsed
-              << " seconds\nAverage trip time: " << elapsed / num_trips
-              << std::endl;
+    std::cout << std::endl;
   }
 
   MPI_Finalize();

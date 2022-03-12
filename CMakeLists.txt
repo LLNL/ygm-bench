@@ -33,10 +33,21 @@ endif ()
 #  ygm
 find_package(ygm CONFIG)
 if(NOT ygm_FOUND)
+	if(DEFINED ENV{YGM_BENCH_YGM_REPO})
+		set(YGM_REPO $ENV{YGM_BENCH_YGM_REPO})
+	else()
+		set(YGM_REPO "https://github.com/steiltre/ygm.git")
+	endif()
+	if(DEFINED ENV{YGM_BENCH_YGM_TAG})
+		set(YGM_TAG $ENV{YGM_BENCH_YGM_TAG})
+	else()
+		set(YGM_TAG "feature/routing")
+	endif()
+
 	FetchContent_Declare(
 	ygm
-	GIT_REPOSITORY 	$ENV{YGM_BENCH_YGM_REPO}
-	GIT_TAG 		$ENV{YGM_BENCH_YGM_TAG}
+	GIT_REPOSITORY 	${YGM_REPO}
+	GIT_TAG 		${YGM_TAG}
 	)         
 	set(JUST_INSTALL_YGM ON)
 	FetchContent_MakeAvailable(ygm)

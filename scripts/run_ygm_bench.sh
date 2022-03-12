@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 
 # Define experiment variables. Can be overridden safely by individual experiments
-YGM_BENCH_NODES=(1 2)
+YGM_BENCH_NODES=(4 8 16 32 64 128 256)
 export YGM_BENCH_MACHINE=$(hostname | sed 's/[0-9]*//g')
 export YGM_BENCH_GCC_VERSION=$(gcc --version | grep -E -o "[0-9]+\.[0-9]+\.[0-9]+" | head -n 1)
 export YGM_BENCH_PROCS_PER_NODE=$(nproc)
@@ -41,7 +41,7 @@ cd ${YGM_BENCH_OUTPUT_DIR}/scripts
 
 # Run individual test scripts
 for nodes in "${YGM_BENCH_NODES[@]}"; do
-	salloc -N ${nodes} -t 24:00:00 ./run_experiment_loop.sh &
+	salloc -N ${nodes} -t 24:00:00 -A hpcgeda ./run_experiment_loop.sh &
 done
 
 wait

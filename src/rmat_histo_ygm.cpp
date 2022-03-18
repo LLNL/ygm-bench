@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-#include <random>
+#include <rmat_edge_generator.hpp>
 #include <utility.hpp>
 #include <ygm/comm.hpp>
 #include <ygm/container/array.hpp>
@@ -47,11 +47,13 @@ int main(int argc, char **argv) {
     auto begin_stats = world.stats_snapshot();
 
     for (int trial = 0; trial < num_trials; ++trial) {
-      std::vector<uint64_t> indices(local_updates);
+      std::vector<uint64_t>           indices;
+      distributed_rmat_edge_generator rmat(world, log_global_table_size,
+                                           local_updates * world.size(), trial);
 
-      for (int64_t i = 0; i < local_updates; ++i) {
-        indices[i] = dist(gen);
-      }
+      rmat.for_all([&indices](const auto first, const auto second) {
+        indices.push_back(first);
+      });
 
       world.barrier();
 

@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: MIT
 
 #include <random>
+#include <utility.hpp>
 #include <ygm/comm.hpp>
 #include <ygm/container/array.hpp>
 #include <ygm/detail/ygm_cereal_archive.hpp>
@@ -70,7 +71,8 @@ int main(int argc, char **argv) {
     int     log_global_table_size{atoi(argv[2])};
     int64_t local_updaters{atoll(argv[3])};
     updater_lifetime = atoi(argv[4]);
-    int num_trials{atoi(argv[5])};
+    int         num_trials{atoi(argv[5])};
+    std::string stats_output_prefix(argv[6]);
 
     uint64_t global_table_size = ((uint64_t)1) << log_global_table_size;
     ygm::container::array<uint64_t> arr(world, global_table_size);
@@ -95,6 +97,8 @@ int main(int argc, char **argv) {
     world.cf_barrier();
     // world.cout0("Beginning AGUPS trials");
 
+    auto begin_stats = world.stats_snapshot();
+
     for (int trial = 0; trial < num_trials; ++trial) {
       std::vector<updater> updater_vec;
 
@@ -104,6 +108,8 @@ int main(int argc, char **argv) {
 
       world.barrier();
 
+      world.set_track_stats(true);
+
       ygm::timer update_timer{};
 
       for (auto &u : updater_vec) {
@@ -112,6 +118,8 @@ int main(int argc, char **argv) {
       }
 
       world.barrier();
+
+      world.set_track_stats(false);
 
       double trial_time = update_timer.elapsed();
 
@@ -134,6 +142,9 @@ int main(int argc, char **argv) {
 
       std::cout << std::endl;
     }
+
+    auto experiment_stats = world.stats_snapshot() - begin_stats;
+    write_stats_files(world, experiment_stats, stats_output_prefix);
   }
 
   MPI_Finalize();

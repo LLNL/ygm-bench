@@ -41,7 +41,7 @@ cd ${YGM_BENCH_OUTPUT_DIR}/scripts
 
 # Run individual test scripts
 for nodes in "${YGM_BENCH_NODES[@]}"; do
-	salloc -N ${nodes} -t 24:00:00 -A hpcgeda ./run_experiment_loop.sh &
+	salloc -N ${nodes} -t 8:00:00 -A hpcgeda ./run_experiment_loop.sh &
 done
 
 wait

@@ -37,7 +37,11 @@ int main(int argc, char **argv) {
 
   for (int trial = 0; trial < num_trials; ++trial) {
     curr_trip = 0;
+
+    auto begin_stats = world.stats_snapshot();
     world.barrier();
+
+    world.set_track_stats(true);
 
     ygm::timer trip_timer{};
 
@@ -47,14 +51,33 @@ int main(int argc, char **argv) {
 
     world.barrier();
 
+    world.set_track_stats(false);
+
     double elapsed = trip_timer.elapsed();
+
+    auto trial_stats = world.stats_snapshot() - begin_stats;
 
     // world.cout0("Went around the world ", num_trips, " times in ", elapsed,
     //" seconds\nAverage trip time: ", elapsed / num_trips);
 
+    size_t message_bytes{0};
+    size_t header_bytes{0};
+
+    for (const auto &bytes : trial_stats.get_destination_message_bytes()) {
+      message_bytes += bytes;
+    }
+    for (const auto &bytes : trial_stats.get_destination_header_bytes()) {
+      header_bytes += bytes;
+    }
+
+    message_bytes = world.all_reduce_sum(message_bytes);
+    header_bytes  = world.all_reduce_sum(header_bytes);
+
     if (world.rank0()) {
       auto total_hops = num_trips * world.size();
-      std::cout << ", " << elapsed << ", " << total_hops / elapsed;
+      std::cout << ", " << elapsed << ", " << total_hops / elapsed << ", "
+                << header_bytes << ", " << message_bytes << ", "
+                << trial_stats.get_all_reduce_count();
     }
   }
 

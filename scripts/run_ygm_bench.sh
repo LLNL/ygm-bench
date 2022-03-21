@@ -9,6 +9,9 @@ export YGM_BENCH_PROCS_PER_NODE=$(nproc)
 export YGM_BENCH_YGM_REPO="https://github.com/steiltre/ygm.git"
 export YGM_BENCH_YGM_TAG="feature/routing"
 
+export YGM_BENCH_KROWKEE_REPO="https://github.com/LLNL/krowkee.git"
+export YGM_BENCH_KROWKEE_TAG="v0.1.0"
+
 # Build ygm-bench
 cd ..
 rm -rf build

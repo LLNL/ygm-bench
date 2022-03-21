@@ -60,10 +60,20 @@ endif()
 # krokee
 find_package(krowkee CONFIG)
 if(NOT krowkee_FOUND)
+  if(DEFINED ENV{YGM_BENCH_KROWKEE_REPO})
+	  set(KROWKEE_REPO $ENV{YGM_BENCH_KROWKEE_REPO})
+	else()
+		set(KROWKEE_REPO "https://github.com/LLNL/krowkee.git")
+	endif()
+	if(DEFINED ENV{YGM_BENCH_KROWKEE_TAG})
+		set(KROWKEE_TAG $ENV{YGM_BENCH_KROWKEE_TAG})
+	else()
+		set(KROWKEE_TAG "v0.1.0")
+	endif()
 	FetchContent_Declare(
 		krowkee
-		GIT_REPOSITORY 	https://github.com/LLNL/krowkee.git
-		GIT_TAG 				main
+		GIT_REPOSITORY 	${KROWKEE_REPO}
+		GIT_TAG 				${KROWKEE_TAG}
 	)
 	set(JUST_INSTALL_KROWKEE ON)
 	FetchContent_MakeAvailable(krowkee)

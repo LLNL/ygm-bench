@@ -9,4 +9,6 @@ setup_ygm_target(histo_ygm)
 setup_ygm_target(histo_rmat_ygm)
 setup_ygm_target(rmat_example)
 
+setup_krowkee_target(embed_ygm)
+
 setup_mpi_target(around_the_world_mpi)

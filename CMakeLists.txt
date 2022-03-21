@@ -56,10 +56,31 @@ else()
 	message(STATUS "Found ygm dependency " ${ygm_DIR})
 endif()
 
+#
+# krokee
+find_package(krowkee CONFIG)
+if(NOT krowkee_FOUND)
+	FetchContent_Declare(
+		krowkee
+		GIT_REPOSITORY 	https://github.com/LLNL/krowkee.git
+		GIT_TAG 				main
+	)
+	set(JUST_INSTALL_KROWKEE ON)
+	FetchContent_MakeAvailable(krowkee)
+	message(STATUS "Cloned krowkee dependency " ${krowkee_SOURCE_DIR})
+else()
+	message(STATUS "Found krowkee dependency " ${krowkee_DIR})
+endif()
+
 function(setup_ygm_target exe_name)
 	add_executable(${exe_name} ${exe_name}.cpp)
 	target_link_libraries(${exe_name} PRIVATE ygm::ygm)
 	target_include_directories(${exe_name} PRIVATE "${PROJECT_SOURCE_DIR}/include")
+endfunction()
+
+function(setup_krowkee_target exe_name)
+  setup_ygm_target(${exe_name})
+	target_link_libraries(${exe_name} PRIVATE krowkee::krowkee)
 endfunction()
 
 function(setup_mpi_target exe_name)

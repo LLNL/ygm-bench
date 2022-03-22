@@ -3,6 +3,8 @@
 //
 // SPDX-License-Identifier: MIT
 
+#include <algorithm>
+#include <string>
 #include <ygm/comm.hpp>
 #include <ygm/utility.hpp>
 
@@ -27,10 +29,20 @@ int main(int argc, char **argv) {
   num_trips = atoi(argv[1]);
   int num_trials{atoi(argv[2])};
 
+  bool        wait_until{false};
+  const char *wait_until_tmp = std::getenv("YGM_BENCH_ATW_WAIT_UNTIL");
+  std::string wait_until_str(wait_until_tmp ? wait_until_tmp : "false");
+  std::transform(
+      wait_until_str.begin(), wait_until_str.end(), wait_until_str.begin(),
+      [](unsigned char c) -> unsigned char { return std::tolower(c); });
+  if (wait_until_str == "true") {
+    wait_until = true;
+  }
+
   if (world.rank0()) {
     std::cout << world.layout().node_size() << ", "
               << world.layout().local_size() << ", " << world.routing_protocol()
-              << ", " << num_trips;
+              << ", " << num_trips << ", " << wait_until_str;
   }
 
   world.barrier();
@@ -47,6 +59,10 @@ int main(int argc, char **argv) {
 
     if (world.rank0()) {
       world.async(1, around_the_world_functor());
+    }
+
+    if (wait_until) {
+      world.wait_until([]() { return curr_trip >= num_trips; });
     }
 
     world.barrier();

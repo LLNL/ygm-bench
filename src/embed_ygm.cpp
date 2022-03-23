@@ -51,11 +51,9 @@ void do_analysis(ygm::comm &world, const parameters_t &params) {
   make_ygm_ptr_functor_t make_ygm_ptr = make_ygm_ptr_t();
 
   sf_ptr_t sf_ptr(make_ygm_ptr(params.vertex_count, params.seed));
-  dsk_t    dsk(world, sf_ptr, params.compaction_threshold,
-               params.promotion_threshold);
 
   std::mt19937                            gen(world.rank());
-  std::uniform_int_distribution<uint64_t> dist(0, world.size());
+  std::uniform_int_distribution<uint64_t> dist(0, params.vertex_count - 1);
 
   double total_update_time{0.0};
 
@@ -66,6 +64,17 @@ void do_analysis(ygm::comm &world, const parameters_t &params) {
 
     for (int64_t i = 0; i < params.local_edge_count; ++i) {
       edges[i] = {dist(gen), dist(gen)};
+    }
+
+    dsk_t dsk(world, sf_ptr, params.compaction_threshold,
+              params.promotion_threshold);
+
+    // I don't think that this is really necessary. We can remove it later if
+    // desired.
+    data_t null_sketch{sf_ptr, params.compaction_threshold,
+                       params.promotion_threshold};
+    for (const auto out_vertex : vertex_set) {
+      dsk.ygm_map().async_insert_if_missing(out_vertex, null_sketch);
     }
 
     world.barrier();

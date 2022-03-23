@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
 
     double total_update_time{0.0};
 
-    auto begin_stats = world.stats_snapshot();
+    world.stats_reset();
 
     for (int trial = 0; trial < num_trials; ++trial) {
       std::vector<uint64_t>           indices;
@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
       std::cout << std::endl;
     }
 
-    auto experiment_stats = world.stats_snapshot() - begin_stats;
+    auto experiment_stats = world.stats_snapshot();
     write_stats_files(world, experiment_stats, stats_output_prefix);
   }
 

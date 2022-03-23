@@ -50,9 +50,9 @@ int main(int argc, char **argv) {
   for (int trial = 0; trial < num_trials; ++trial) {
     curr_trip = 0;
 
-    auto begin_stats = world.stats_snapshot();
     world.barrier();
 
+    world.stats_reset();
     world.set_track_stats(true);
 
     ygm::timer trip_timer{};
@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
 
     double elapsed = trip_timer.elapsed();
 
-    auto trial_stats = world.stats_snapshot() - begin_stats;
+    auto trial_stats = world.stats_snapshot();
 
     // world.cout0("Went around the world ", num_trips, " times in ", elapsed,
     //" seconds\nAverage trip time: ", elapsed / num_trips);

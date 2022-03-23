@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
     world.cf_barrier();
     // world.cout0("Beginning AGUPS trials");
 
-    auto begin_stats = world.stats_snapshot();
+    world.stats_reset();
 
     for (int trial = 0; trial < num_trials; ++trial) {
       std::vector<updater> updater_vec;
@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
       std::cout << std::endl;
     }
 
-    auto experiment_stats = world.stats_snapshot() - begin_stats;
+    auto experiment_stats = world.stats_snapshot();
     write_stats_files(world, experiment_stats, stats_output_prefix);
   }
 

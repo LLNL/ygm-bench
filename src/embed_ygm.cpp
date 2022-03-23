@@ -143,7 +143,8 @@ int main(int argc, char **argv) {
                 << ", " << world.routing_protocol() << ", " << range_size
                 << ", " << vertex_count << ", "
                 << local_edge_count * world.size() << ", "
-                << compaction_threshold << ", " << promotion_threshold;
+                << compaction_threshold << ", " << promotion_threshold << ", "
+                << seed;
     }
 
     parameters_t params{range_size,

@@ -10,6 +10,8 @@
 #include <ygm/detail/ygm_cereal_archive.hpp>
 #include <ygm/utility.hpp>
 
+#include <set>
+
 int main(int argc, char **argv) {
   int provided;
   MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
@@ -48,12 +50,26 @@ int main(int argc, char **argv) {
 
     for (int trial = 0; trial < num_trials; ++trial) {
       std::vector<uint64_t>           indices;
+      std::set<uint64_t>              out_vertex_set;
       distributed_rmat_edge_generator rmat(world, log_global_table_size,
                                            local_updates * world.size(), trial);
 
-      rmat.for_all([&indices](const auto first, const auto second) {
-        indices.push_back(first);
-      });
+      rmat.for_all(
+          [&indices, &out_vertex_set](const auto first, const auto second) {
+            indices.push_back(first);
+            out_vertex_set.insert(first);
+          });
+
+      uint64_t global_min{world.all_reduce_min(*out_vertex_set.begin())};
+      uint64_t global_max{world.all_reduce_max(*out_vertex_set.rbegin())};
+      if (world.rank0()) {
+        std::cout << ", local unique vertices: " << out_vertex_set.size();
+        std::cout << ", local inserts: " << indices.size();
+        std::cout << ", min local vertex: " << *out_vertex_set.begin();
+        std::cout << ", max local vertex: " << *out_vertex_set.rbegin();
+        std::cout << ", min global vertex: " << global_min;
+        std::cout << ", max global vertex: " << global_max;
+      }
 
       world.barrier();
 
@@ -62,8 +78,18 @@ int main(int argc, char **argv) {
       ygm::timer update_timer{};
 
       for (const auto &index : indices) {
-        arr.async_visit(index, [](const auto i, auto v) { ++v; });
+        arr.async_visit(index, [](const auto i, auto &v) { ++v; });
       }
+
+      world.barrier();
+
+      std::uint64_t local_nonzeros{0};
+      arr.for_all([&local_nonzeros](const auto i, auto v) {
+        if (v > 0) {
+          ++local_nonzeros;
+        }
+      });
+      std::uint64_t global_nonzeros{world.all_reduce_sum(local_nonzeros)};
 
       world.barrier();
 
@@ -80,6 +106,8 @@ int main(int argc, char **argv) {
         //<< std::endl;
 
         std::cout << ", " << trial_time << ", " << trial_rate;
+        std::cout << ", local nonzeros: " << local_nonzeros;
+        std::cout << ", global nonzeros: " << global_nonzeros;
       }
 
       total_update_time += trial_time;

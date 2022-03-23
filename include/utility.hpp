@@ -54,26 +54,45 @@ void write_stats_vec_file(const std::vector<T> &stats_vec,
 void write_stats_files(ygm::comm &                       world,
                        const ygm::detail::stats_tracker &stats,
                        const std::string &               filename_prefix) {
-  auto global_destination_message_bytes =
-      gather_vectors_rank_0(world, stats.get_destination_message_bytes());
-  auto global_destination_header_bytes =
-      gather_vectors_rank_0(world, stats.get_destination_header_bytes());
-  auto global_mpi_bytes = gather_vectors_rank_0(world, stats.get_mpi_bytes());
-  auto global_mpi_sends = gather_vectors_rank_0(world, stats.get_mpi_sends());
+  auto global_destination_message_bytes_sum =
+      gather_vectors_rank_0(world, stats.get_destination_message_bytes_sum());
+  auto global_destination_header_bytes_sum =
+      gather_vectors_rank_0(world, stats.get_destination_header_bytes_sum());
+  auto global_mpi_bytes_sum =
+      gather_vectors_rank_0(world, stats.get_mpi_bytes_sum());
+  auto global_mpi_sends_sum =
+      gather_vectors_rank_0(world, stats.get_mpi_sends_sum());
+  auto global_mpi_bytes_max =
+      gather_vectors_rank_0(world, stats.get_mpi_bytes_max());
+  auto global_mpi_send_time_sum =
+      gather_vectors_rank_0(world, stats.get_mpi_send_time_sum());
+  auto global_mpi_send_time_max =
+      gather_vectors_rank_0(world, stats.get_mpi_send_time_max());
 
   if (world.rank0()) {
-    std::string message_bytes_filename = filename_prefix + "_message_bytes";
-    write_stats_vec_file(global_destination_message_bytes,
+    std::string message_bytes_filename = filename_prefix + "_message_bytes_sum";
+    write_stats_vec_file(global_destination_message_bytes_sum,
                          message_bytes_filename);
 
-    std::string header_bytes_filename = filename_prefix + "_header_bytes";
-    write_stats_vec_file(global_destination_header_bytes,
+    std::string header_bytes_filename = filename_prefix + "_header_bytes_sum";
+    write_stats_vec_file(global_destination_header_bytes_sum,
                          header_bytes_filename);
 
-    std::string mpi_bytes_filename = filename_prefix + "_mpi_bytes";
-    write_stats_vec_file(global_mpi_bytes, mpi_bytes_filename);
+    std::string mpi_bytes_sum_filename = filename_prefix + "_mpi_bytes_sum";
+    write_stats_vec_file(global_mpi_bytes_sum, mpi_bytes_sum_filename);
 
-    std::string mpi_sends_filename = filename_prefix + "_mpi_sends";
-    write_stats_vec_file(global_mpi_sends, mpi_sends_filename);
+    std::string mpi_sends_sum_filename = filename_prefix + "_mpi_sends_sum";
+    write_stats_vec_file(global_mpi_sends_sum, mpi_sends_sum_filename);
+
+    std::string mpi_bytes_max_filename = filename_prefix + "_mpi_bytes_max";
+    write_stats_vec_file(global_mpi_bytes_max, mpi_bytes_max_filename);
+
+    std::string mpi_send_time_sum_filename =
+        filename_prefix + "_mpi_send_time_sum";
+    write_stats_vec_file(global_mpi_send_time_sum, mpi_send_time_sum_filename);
+
+    std::string mpi_send_time_max_filename =
+        filename_prefix + "_mpi_send_time_max";
+    write_stats_vec_file(global_mpi_send_time_max, mpi_send_time_max_filename);
   }
 }

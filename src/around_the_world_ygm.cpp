@@ -79,10 +79,10 @@ int main(int argc, char **argv) {
     size_t message_bytes{0};
     size_t header_bytes{0};
 
-    for (const auto &bytes : trial_stats.get_destination_message_bytes()) {
+    for (const auto &bytes : trial_stats.get_destination_message_bytes_sum()) {
       message_bytes += bytes;
     }
-    for (const auto &bytes : trial_stats.get_destination_header_bytes()) {
+    for (const auto &bytes : trial_stats.get_destination_header_bytes_sum()) {
       header_bytes += bytes;
     }
 

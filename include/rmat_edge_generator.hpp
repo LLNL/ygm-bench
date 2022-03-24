@@ -214,7 +214,8 @@ class distributed_rmat_edge_generator {
             vertex_scale,
             global_edge_count / world.size() +
                 (world.rank() < (global_edge_count % world.size())),
-            seed * (world.rank() + 1), scramble, undirected, a, b, c, d) {}
+            seed * world.size() + world.rank(), scramble, undirected, a, b, c,
+            d) {}
 
   template <typename Function>
   void for_all(Function fn) {

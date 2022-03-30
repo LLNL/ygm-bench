@@ -10,6 +10,7 @@
 #include <krowkee/util/sketch_types.hpp>
 #include <krowkee/util/ygm_tests.hpp>
 
+#include <cli_helper.hpp>
 #include <utility.hpp>
 
 #include <ygm/comm.hpp>
@@ -26,17 +27,6 @@ using DistributedPromotable32CountSketch_t = krowkee::stream::Distributed<
     krowkee::stream::Summary, krowkee::sketch::Sketch,
     krowkee::transform::CountSketchFunctor, krowkee::sketch::MapPromotable32,
     std::plus, std::uint64_t, std::int32_t, krowkee::hash::MulAddShift>;
-
-struct parameters_t {
-  int         range_size;
-  size_t      vertex_count;
-  size_t      local_edge_count;
-  size_t      compaction_threshold;
-  size_t      promotion_threshold;
-  int         num_trials;
-  uint32_t    seed;
-  std::string stats_output_prefix;
-};
 
 template <typename DistributedType>
 void do_analysis(ygm::comm &world, const parameters_t &params) {
@@ -129,38 +119,20 @@ int main(int argc, char **argv) {
   }
 
   {
-    int ygm_buffer_capacity = atoi(argv[1]);
+    parameters_t params = parse_args(argc, argv);
 
-    ygm::comm world(MPI_COMM_WORLD, ygm_buffer_capacity);
+    ygm::comm world(MPI_COMM_WORLD, params.ygm_buffer_capacity);
 
-    int         range_size(atoi(argv[2]));
-    int         log_vertex_count{atoi(argv[3])};
-    size_t      local_edge_count(atoll(argv[4]));
-    size_t      compaction_threshold(atoll(argv[5]));
-    size_t      promotion_threshold(atoll(argv[6]));
-    int         num_trials{atoi(argv[7])};
-    uint32_t    seed(atoi(argv[8]));
-    std::string stats_output_prefix(argv[9]);
-
-    size_t vertex_count = ((size_t)1) << log_vertex_count;
     if (world.rank0()) {
       std::cout << world.layout().node_size() << ", "
-                << world.layout().local_size() << ", " << ygm_buffer_capacity
-                << ", " << world.routing_protocol() << ", " << range_size
-                << ", " << vertex_count << ", "
-                << local_edge_count * world.size() << ", "
-                << compaction_threshold << ", " << promotion_threshold << ", "
-                << seed;
+                << world.layout().local_size() << ", "
+                << params.ygm_buffer_capacity << ", "
+                << world.routing_protocol() << ", " << params.range_size << ", "
+                << params.vertex_count << ", "
+                << params.local_edge_count * world.size() << ", "
+                << params.compaction_threshold << ", "
+                << params.promotion_threshold << ", " << params.seed;
     }
-
-    parameters_t params{range_size,
-                        vertex_count,
-                        local_edge_count,
-                        compaction_threshold,
-                        promotion_threshold,
-                        num_trials,
-                        seed,
-                        stats_output_prefix};
 
     do_analysis<DistributedPromotable32CountSketch_t>(world, params);
   }

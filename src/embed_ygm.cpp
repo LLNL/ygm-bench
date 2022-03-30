@@ -69,13 +69,13 @@ void do_analysis(ygm::comm &world, const parameters_t &params) {
     dsk_t dsk(world, sf_ptr, params.compaction_threshold,
               params.promotion_threshold);
 
-    // I don't think that this is really necessary. We can remove it later if
-    // desired.
-    data_t null_sketch{sf_ptr, params.compaction_threshold,
-                       params.promotion_threshold};
-    for (const auto out_vertex : vertex_set) {
-      dsk.ygm_map().async_insert_if_missing(out_vertex, null_sketch);
-    }
+    // // I don't think that this is really necessary. We can remove it later if
+    // // desired.
+    // data_t null_sketch{sf_ptr, params.compaction_threshold,
+    //                    params.promotion_threshold};
+    // for (const auto out_vertex : vertex_set) {
+    //   dsk.ygm_map().async_insert_if_missing(out_vertex, null_sketch);
+    // }
 
     world.barrier();
 
@@ -85,7 +85,6 @@ void do_analysis(ygm::comm &world, const parameters_t &params) {
 
     for (const auto &edge : edges) {
       dsk.async_update(edge.first, edge.second);
-      // dsk.async_insert(edge.second, edge.first);
     }
     dsk.compactify();
 
@@ -136,16 +135,14 @@ int main(int argc, char **argv) {
 
     int         range_size(atoi(argv[2]));
     int         log_vertex_count{atoi(argv[3])};
-    int         log_local_edge_count{atoi(argv[4])};
+    size_t      local_edge_count(atoll(argv[4]));
     size_t      compaction_threshold(atoll(argv[5]));
     size_t      promotion_threshold(atoll(argv[6]));
     int         num_trials{atoi(argv[7])};
     uint32_t    seed(atoi(argv[8]));
     std::string stats_output_prefix(argv[9]);
 
-    size_t vertex_count     = ((size_t)1) << log_vertex_count;
-    size_t local_edge_count = ((size_t)1) << log_local_edge_count;
-    // world.cout0("Creating global table with size ", global_table_size);
+    size_t vertex_count = ((size_t)1) << log_vertex_count;
     if (world.rank0()) {
       std::cout << world.layout().node_size() << ", "
                 << world.layout().local_size() << ", " << ygm_buffer_capacity

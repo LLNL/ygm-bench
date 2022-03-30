@@ -3,6 +3,8 @@
 //
 // SPDX-License-Identifier: MIT
 
+#include <algorithm>
+#include <string>
 #include <ygm/comm.hpp>
 #include <ygm/utility.hpp>
 
@@ -27,10 +29,20 @@ int main(int argc, char **argv) {
   num_trips = atoi(argv[1]);
   int num_trials{atoi(argv[2])};
 
+  bool        wait_until{false};
+  const char *wait_until_tmp = std::getenv("YGM_BENCH_ATW_WAIT_UNTIL");
+  std::string wait_until_str(wait_until_tmp ? wait_until_tmp : "false");
+  std::transform(
+      wait_until_str.begin(), wait_until_str.end(), wait_until_str.begin(),
+      [](unsigned char c) -> unsigned char { return std::tolower(c); });
+  if (wait_until_str == "true") {
+    wait_until = true;
+  }
+
   if (world.rank0()) {
     std::cout << world.layout().node_size() << ", "
               << world.layout().local_size() << ", " << world.routing_protocol()
-              << ", " << num_trips;
+              << ", " << num_trips << ", " << wait_until_str;
   }
 
   world.barrier();
@@ -38,9 +50,9 @@ int main(int argc, char **argv) {
   for (int trial = 0; trial < num_trials; ++trial) {
     curr_trip = 0;
 
-    auto begin_stats = world.stats_snapshot();
     world.barrier();
 
+    world.stats_reset();
     world.set_track_stats(true);
 
     ygm::timer trip_timer{};
@@ -49,13 +61,17 @@ int main(int argc, char **argv) {
       world.async(1, around_the_world_functor());
     }
 
+    if (wait_until) {
+      world.wait_until([]() { return curr_trip >= num_trips; });
+    }
+
     world.barrier();
 
     world.set_track_stats(false);
 
     double elapsed = trip_timer.elapsed();
 
-    auto trial_stats = world.stats_snapshot() - begin_stats;
+    auto trial_stats = world.stats_snapshot();
 
     // world.cout0("Went around the world ", num_trips, " times in ", elapsed,
     //" seconds\nAverage trip time: ", elapsed / num_trips);
@@ -63,10 +79,10 @@ int main(int argc, char **argv) {
     size_t message_bytes{0};
     size_t header_bytes{0};
 
-    for (const auto &bytes : trial_stats.get_destination_message_bytes()) {
+    for (const auto &bytes : trial_stats.get_destination_message_bytes_sum()) {
       message_bytes += bytes;
     }
-    for (const auto &bytes : trial_stats.get_destination_header_bytes()) {
+    for (const auto &bytes : trial_stats.get_destination_header_bytes_sum()) {
       header_bytes += bytes;
     }
 

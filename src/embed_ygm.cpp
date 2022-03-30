@@ -57,7 +57,7 @@ void do_analysis(ygm::comm &world, const parameters_t &params) {
 
   double total_update_time{0.0};
 
-  auto begin_stats = world.stats_snapshot();
+  world.stats_reset();
 
   for (int trial = 0; trial < params.num_trials; ++trial) {
     std::vector<std::pair<uint64_t, uint64_t>> edges(params.local_edge_count);
@@ -117,7 +117,7 @@ void do_analysis(ygm::comm &world, const parameters_t &params) {
     std::cout << std::endl;
   }
 
-  auto experiment_stats = world.stats_snapshot() - begin_stats;
+  auto experiment_stats = world.stats_snapshot();
   write_stats_files(world, experiment_stats, params.stats_output_prefix);
 }
 

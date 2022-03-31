@@ -11,7 +11,7 @@
 
 struct uniform_edge_vec_generator_t {
   std::vector<std::pair<std::uint64_t, std::uint64_t>> operator()(
-      const parameters_t &params, const int seed) {
+      ygm::comm &world, const parameters_t &params, const int seed) {
     std::mt19937                            gen(params.seed + seed);
     std::uniform_int_distribution<uint64_t> dist(0, params.vertex_count - 1);
 

@@ -87,7 +87,7 @@ void do_analysis(ygm::comm &world, const parameters_t &params) {
     //   edges[i] = {dist(gen), dist(gen)};
     // }
     std::vector<std::pair<uint64_t, uint64_t>> edges(
-        edge_generator(params, trial));
+        edge_generator(world, params, trial));
 
     dsk_t dsk(world, sf_ptr, params.compaction_threshold,
               params.promotion_threshold);

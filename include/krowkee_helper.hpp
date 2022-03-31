@@ -13,6 +13,7 @@
 #include <krowkee/util/sketch_types.hpp>
 #include <krowkee/util/ygm_tests.hpp>
 
+#include <ygm/comm.hpp>
 #include <ygm/detail/ygm_cereal_archive.hpp>
 #include <ygm/detail/ygm_ptr.hpp>
 #include <ygm/utility.hpp>
@@ -133,4 +134,36 @@ void do_analysis(ygm::comm &world, const parameters_t &params) {
 
   auto experiment_stats = world.stats_snapshot();
   write_stats_files(world, experiment_stats, params.stats_output_prefix);
+}
+
+template <typename EdgeGeneratorType>
+void do_main(int argc, char **argv) {
+  int provided;
+  MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+  if (provided != MPI_THREAD_MULTIPLE) {
+    throw std::runtime_error(
+        "MPI_Init_thread: MPI_THREAD_MULTIPLE not provided.");
+  }
+
+  {
+    parameters_t params = parse_args(argc, argv);
+
+    ygm::comm world(MPI_COMM_WORLD, params.ygm_buffer_capacity);
+
+    if (world.rank0()) {
+      std::cout << world.layout().node_size() << ", "
+                << world.layout().local_size() << ", "
+                << params.ygm_buffer_capacity << ", "
+                << world.routing_protocol() << ", " << params.range_size << ", "
+                << params.vertex_count << ", "
+                << params.local_edge_count * world.size() << ", "
+                << params.compaction_threshold << ", "
+                << params.promotion_threshold << ", " << params.seed;
+    }
+
+    do_analysis<DistributedPromotable32CountSketch_t, EdgeGeneratorType>(
+        world, params);
+  }
+
+  MPI_Finalize();
 }

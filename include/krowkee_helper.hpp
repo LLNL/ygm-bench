@@ -81,12 +81,6 @@ void do_analysis(ygm::comm &world, const parameters_t &params) {
   world.stats_reset();
 
   for (int trial = 0; trial < params.num_trials; ++trial) {
-    // std::vector<std::pair<uint64_t, uint64_t>>
-    // edges(params.local_edge_count);
-
-    // for (int64_t i = 0; i < params.local_edge_count; ++i) {
-    //   edges[i] = {dist(gen), dist(gen)};
-    // }
     std::vector<std::pair<uint64_t, uint64_t>> edges(
         edge_generator(world, params, trial));
 

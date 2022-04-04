@@ -2,6 +2,7 @@
 // Project Developers. See the top-level COPYRIGHT file for details.
 //
 // SPDX-License-Identifier: MIT
+#pragma once
 
 #include <fstream>
 #include <string>
@@ -35,7 +36,7 @@ std::vector<std::vector<T>> gather_vectors_rank_0(
 
 template <typename T>
 void write_stats_vec_file(const std::vector<T> &stats_vec,
-                          const std::string &   filename) {
+                          const std::string    &filename) {
   std::ofstream ofs(filename);
 
   ofs << "Source/Dest";
@@ -51,9 +52,9 @@ void write_stats_vec_file(const std::vector<T> &stats_vec,
   }
 }
 
-void write_stats_files(ygm::comm &                       world,
+void write_stats_files(ygm::comm                        &world,
                        const ygm::detail::stats_tracker &stats,
-                       const std::string &               filename_prefix) {
+                       const std::string                &filename_prefix) {
   auto global_destination_message_bytes_sum =
       gather_vectors_rank_0(world, stats.get_destination_message_bytes_sum());
   auto global_destination_header_bytes_sum =

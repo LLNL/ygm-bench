@@ -68,6 +68,10 @@ void write_stats_files(ygm::comm &                       world,
       gather_vectors_rank_0(world, stats.get_mpi_send_time_sum());
   auto global_mpi_send_time_max =
       gather_vectors_rank_0(world, stats.get_mpi_send_time_max());
+  auto global_mpi_recv_time_sum =
+      gather_vectors_rank_0(world, stats.get_mpi_recv_time_sum());
+  auto global_mpi_recv_time_max =
+      gather_vectors_rank_0(world, stats.get_mpi_recv_time_max());
 
   if (world.rank0()) {
     std::string message_bytes_filename = filename_prefix + "_message_bytes_sum";
@@ -94,5 +98,13 @@ void write_stats_files(ygm::comm &                       world,
     std::string mpi_send_time_max_filename =
         filename_prefix + "_mpi_send_time_max";
     write_stats_vec_file(global_mpi_send_time_max, mpi_send_time_max_filename);
+
+    std::string mpi_recv_time_sum_filename =
+        filename_prefix + "_mpi_recv_time_sum";
+    write_stats_vec_file(global_mpi_recv_time_sum, mpi_recv_time_sum_filename);
+
+    std::string mpi_recv_time_max_filename =
+        filename_prefix + "_mpi_recv_time_max";
+    write_stats_vec_file(global_mpi_recv_time_max, mpi_recv_time_max_filename);
   }
 }

@@ -66,13 +66,14 @@ int main(int argc, char **argv) {
 
   {
     int       ygm_buffer_capacity = atoi(argv[1]);
-    ygm::comm world(MPI_COMM_WORLD, ygm_buffer_capacity);
+    int       ygm_num_listeners   = atoi(argv[2]);
+    ygm::comm world(MPI_COMM_WORLD, ygm_buffer_capacity, ygm_num_listeners, 30);
 
-    int     log_global_table_size{atoi(argv[2])};
-    int64_t local_updaters{atoll(argv[3])};
-    updater_lifetime = atoi(argv[4]);
-    int         num_trials{atoi(argv[5])};
-    std::string stats_output_prefix(argv[6]);
+    int     log_global_table_size{atoi(argv[3])};
+    int64_t local_updaters{atoll(argv[4])};
+    updater_lifetime = atoi(argv[5]);
+    int         num_trials{atoi(argv[6])};
+    std::string stats_output_prefix(argv[7]);
 
     uint64_t global_table_size = ((uint64_t)1) << log_global_table_size;
     ygm::container::array<uint64_t> arr(world, global_table_size);
@@ -83,9 +84,9 @@ int main(int argc, char **argv) {
     if (world.rank0()) {
       std::cout << world.layout().node_size() << ", "
                 << world.layout().local_size() << ", " << ygm_buffer_capacity
-                << ", " << world.routing_protocol() << ", " << global_table_size
-                << ", " << local_updaters * world.size() << ", "
-                << updater_lifetime;
+                << ", " << ygm_num_listeners << ", " << world.routing_protocol()
+                << ", " << global_table_size << ", "
+                << local_updaters * world.size() << ", " << updater_lifetime;
     }
 
     // world.cout0("Initializing array values");
@@ -144,7 +145,7 @@ int main(int argc, char **argv) {
     }
 
     auto experiment_stats = world.stats_snapshot();
-    write_stats_files(world, experiment_stats, stats_output_prefix);
+    // write_stats_files(world, experiment_stats, stats_output_prefix);
   }
 
   MPI_Finalize();

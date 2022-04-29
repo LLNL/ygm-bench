@@ -7,7 +7,7 @@ export YGM_BENCH_GCC_VERSION=$(gcc --version | grep -E -o "[0-9]+\.[0-9]+\.[0-9]
 export YGM_BENCH_PROCS_PER_NODE=$(nproc)
 
 export YGM_BENCH_YGM_REPO="https://github.com/steiltre/ygm.git"
-export YGM_BENCH_YGM_TAG="feature/routing"
+export YGM_BENCH_YGM_TAG="feature/multi_listener_routing"
 
 # Build ygm-bench
 cd ..
@@ -34,7 +34,7 @@ cp -r build/src ${YGM_BINARY_DIR}
 cp -r scripts ${YGM_BENCH_OUTPUT_DIR}
 
 # All tests run from output directory
-export LAUNCH_PREFIX="srun -D ${YGM_BENCH_OUTPUT_DIR}"
+export LAUNCH_PREFIX="srun -D ${YGM_BENCH_OUTPUT_DIR} --mpibind=off"
 cd ${YGM_BENCH_OUTPUT_DIR}/scripts
 
 . prepare_headers.sh

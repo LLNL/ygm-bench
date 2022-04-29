@@ -41,7 +41,7 @@ if(NOT ygm_FOUND)
 	if(DEFINED ENV{YGM_BENCH_YGM_TAG})
 		set(YGM_TAG $ENV{YGM_BENCH_YGM_TAG})
 	else()
-		set(YGM_TAG "feature/routing")
+		set(YGM_TAG "feature/multi_listener_routing")
 	endif()
 
 	FetchContent_Declare(

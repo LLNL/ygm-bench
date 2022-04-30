@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
     int ygm_buffer_capacity = atoi(argv[1]);
     int ygm_num_listeners   = atoi(argv[2]);
 
-    ygm::comm world(MPI_COMM_WORLD, ygm_buffer_capacity, ygm_num_listeners, 40);
+    ygm::comm world(MPI_COMM_WORLD, ygm_buffer_capacity, ygm_num_listeners, 20);
 
     int         log_global_table_size{atoi(argv[3])};
     int64_t     local_updates{atoll(argv[4])};

@@ -34,7 +34,7 @@ cp -r build/src ${YGM_BINARY_DIR}
 cp -r scripts ${YGM_BENCH_OUTPUT_DIR}
 
 # All tests run from output directory
-export LAUNCH_PREFIX="srun -D ${YGM_BENCH_OUTPUT_DIR} --mpibind=off"
+export LAUNCH_PREFIX="srun -D ${YGM_BENCH_OUTPUT_DIR} --mpibind=off --export=OMP_PROC_BIND=false"
 cd ${YGM_BENCH_OUTPUT_DIR}/scripts
 
 . prepare_headers.sh

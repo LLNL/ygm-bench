@@ -6,7 +6,7 @@ YGM_ROUTING_PROTOCOLS=("YGM_ROUTING_PROTOCOL_DIRECT" "YGM_ROUTING_PROTOCOL_NR")
 YGM_BENCH_NUM_LISTENERS=(1 2)
 
 global_log_table_size=$(echo ${SLURM_JOB_NUM_NODES} | python3 -c "import math; print(26+round(math.log2(float(input()))))")
-local_updates=20000000
+local_updates=50000000
 num_trials=5
 
 for routing_protocol in "${YGM_ROUTING_PROTOCOLS[@]}"; do

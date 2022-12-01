@@ -131,7 +131,7 @@ void do_main(ygm::comm &world, const parameters_t &params) {
     typedef typename sk_t::sf_t     sf_t;
     typedef typename sk_t::sf_ptr_t sf_ptr_t;
 
-    sf_ptr_t sf_ptr(std::make_shared<sf_t>(params.vertex_count, params.seed));
+    sf_ptr_t sf_ptr(std::make_shared<sf_t>(params.range_size, params.seed));
     sk_t     default_vertex(sf_ptr);
     ygm::container::map<std::uint64_t, sk_t> vertex_map(world, default_vertex);
 

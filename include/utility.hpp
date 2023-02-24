@@ -6,7 +6,6 @@
 #include <fstream>
 #include <string>
 #include <ygm/comm.hpp>
-#include <ygm/detail/stats_tracker.hpp>
 
 template <typename T>
 std::vector<std::vector<T>> gather_vectors_rank_0(
@@ -33,78 +32,7 @@ std::vector<std::vector<T>> gather_vectors_rank_0(
   return to_return;
 }
 
-template <typename T>
-void write_stats_vec_file(const std::vector<T> &stats_vec,
-                          const std::string &   filename) {
-  std::ofstream ofs(filename);
-
-  ofs << "Source/Dest";
-  for (int i = 0; i < stats_vec.size(); ++i) {
-    ofs << "," << i;
-  }
-
-  for (int i = 0; i < stats_vec.size(); ++i) {
-    ofs << "\n" << i;
-    for (const auto &val : stats_vec[i]) {
-      ofs << "," << val;
-    }
-  }
-}
-
-void write_stats_files(ygm::comm &                       world,
-                       const ygm::detail::stats_tracker &stats,
-                       const std::string &               filename_prefix) {
-  auto global_destination_message_bytes_sum =
-      gather_vectors_rank_0(world, stats.get_destination_message_bytes_sum());
-  auto global_destination_header_bytes_sum =
-      gather_vectors_rank_0(world, stats.get_destination_header_bytes_sum());
-  auto global_mpi_bytes_sum =
-      gather_vectors_rank_0(world, stats.get_mpi_bytes_sum());
-  auto global_mpi_sends_sum =
-      gather_vectors_rank_0(world, stats.get_mpi_sends_sum());
-  auto global_mpi_bytes_max =
-      gather_vectors_rank_0(world, stats.get_mpi_bytes_max());
-  auto global_mpi_send_time_sum =
-      gather_vectors_rank_0(world, stats.get_mpi_send_time_sum());
-  auto global_mpi_send_time_max =
-      gather_vectors_rank_0(world, stats.get_mpi_send_time_max());
-  auto global_mpi_recv_time_sum =
-      gather_vectors_rank_0(world, stats.get_mpi_recv_time_sum());
-  auto global_mpi_recv_time_max =
-      gather_vectors_rank_0(world, stats.get_mpi_recv_time_max());
-
-  if (world.rank0()) {
-    std::string message_bytes_filename = filename_prefix + "_message_bytes_sum";
-    write_stats_vec_file(global_destination_message_bytes_sum,
-                         message_bytes_filename);
-
-    std::string header_bytes_filename = filename_prefix + "_header_bytes_sum";
-    write_stats_vec_file(global_destination_header_bytes_sum,
-                         header_bytes_filename);
-
-    std::string mpi_bytes_sum_filename = filename_prefix + "_mpi_bytes_sum";
-    write_stats_vec_file(global_mpi_bytes_sum, mpi_bytes_sum_filename);
-
-    std::string mpi_sends_sum_filename = filename_prefix + "_mpi_sends_sum";
-    write_stats_vec_file(global_mpi_sends_sum, mpi_sends_sum_filename);
-
-    std::string mpi_bytes_max_filename = filename_prefix + "_mpi_bytes_max";
-    write_stats_vec_file(global_mpi_bytes_max, mpi_bytes_max_filename);
-
-    std::string mpi_send_time_sum_filename =
-        filename_prefix + "_mpi_send_time_sum";
-    write_stats_vec_file(global_mpi_send_time_sum, mpi_send_time_sum_filename);
-
-    std::string mpi_send_time_max_filename =
-        filename_prefix + "_mpi_send_time_max";
-    write_stats_vec_file(global_mpi_send_time_max, mpi_send_time_max_filename);
-
-    std::string mpi_recv_time_sum_filename =
-        filename_prefix + "_mpi_recv_time_sum";
-    write_stats_vec_file(global_mpi_recv_time_sum, mpi_recv_time_sum_filename);
-
-    std::string mpi_recv_time_max_filename =
-        filename_prefix + "_mpi_recv_time_max";
-    write_stats_vec_file(global_mpi_recv_time_max, mpi_recv_time_max_filename);
-  }
+void write_stats_files(ygm::comm &world, const std::string &experiment_name,
+                       std::ostream &os) {
+  world.stats_print(experiment_name, os);
 }

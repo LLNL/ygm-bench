@@ -4,37 +4,26 @@
 // SPDX-License-Identifier: MIT
 
 #include <random>
-#include <utility.hpp>
 #include <ygm/comm.hpp>
 #include <ygm/container/array.hpp>
 #include <ygm/detail/ygm_cereal_archive.hpp>
 #include <ygm/utility.hpp>
 
 int main(int argc, char **argv) {
-  int provided;
-  MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-  if (provided != MPI_THREAD_MULTIPLE) {
-    throw std::runtime_error(
-        "MPI_Init_thread: MPI_THREAD_MULTIPLE not provided.");
-  }
-
   {
-    int ygm_buffer_capacity = atoi(argv[1]);
-    int ygm_num_listeners   = atoi(argv[2]);
+    ygm::comm world(&argc, &argv);
 
-    ygm::comm world(MPI_COMM_WORLD, ygm_buffer_capacity, ygm_num_listeners, 20);
-
-    int         log_global_table_size{atoi(argv[3])};
-    int64_t     local_updates{atoll(argv[4])};
-    int         num_trials{atoi(argv[5])};
-    std::string stats_output_prefix(argv[6]);
+    int     log_global_table_size{atoi(argv[1])};
+    int64_t local_updates{atoll(argv[2])};
+    int     num_trials{atoi(argv[3])};
 
     uint64_t global_table_size = ((uint64_t)1) << log_global_table_size;
     // world.cout0("Creating global table with size ", global_table_size);
     if (world.rank0()) {
       std::cout << world.layout().node_size() << ", "
-                << world.layout().local_size() << ", " << ygm_buffer_capacity
-                << ", " << ygm_num_listeners << ", " << world.routing_protocol()
+                << world.layout().local_size()
+                << ", " /*<< ygm_buffer_capacity*/
+                << ", " /*<< world.routing_protocol()*/
                 << ", " << global_table_size << ", "
                 << local_updates * world.size();
     }
@@ -57,8 +46,6 @@ int main(int argc, char **argv) {
 
       world.barrier();
 
-      world.set_track_stats(true);
-
       ygm::timer update_timer{};
 
       for (const auto &index : indices) {
@@ -66,8 +53,6 @@ int main(int argc, char **argv) {
       }
 
       world.barrier();
-
-      world.set_track_stats(false);
 
       double trial_time = update_timer.elapsed();
 
@@ -85,10 +70,6 @@ int main(int argc, char **argv) {
       total_update_time += trial_time;
     }
 
-    uint64_t global_bytes = world.global_bytes_sent();
-    uint64_t global_message_bytes =
-        local_updates * world.size() * num_trials * 8;
-
     if (world.rank0()) {
       double average_rate = local_updates * world.size() * num_trials /
                             total_update_time / (1000 * 1000 * 1000);
@@ -105,10 +86,7 @@ int main(int argc, char **argv) {
 
       std::cout << std::endl;
     }
-
-    auto experiment_stats = world.stats_snapshot();
-    // write_stats_files(world, experiment_stats, stats_output_prefix);
   }
 
-  MPI_Finalize();
+  return 0;
 }

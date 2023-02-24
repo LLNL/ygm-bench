@@ -57,23 +57,13 @@ struct recursive_functor {
 };
 
 int main(int argc, char **argv) {
-  int provided;
-  MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-  if (provided != MPI_THREAD_MULTIPLE) {
-    throw std::runtime_error(
-        "MPI_Init_thread: MPI_THREAD_MULTIPLE not provided.");
-  }
-
   {
-    int       ygm_buffer_capacity = atoi(argv[1]);
-    int       ygm_num_listeners   = atoi(argv[2]);
-    ygm::comm world(MPI_COMM_WORLD, ygm_buffer_capacity, ygm_num_listeners, 30);
+    ygm::comm world(&argc, &argv);
 
-    int     log_global_table_size{atoi(argv[3])};
-    int64_t local_updaters{atoll(argv[4])};
-    updater_lifetime = atoi(argv[5]);
-    int         num_trials{atoi(argv[6])};
-    std::string stats_output_prefix(argv[7]);
+    int     log_global_table_size{atoi(argv[1])};
+    int64_t local_updaters{atoll(argv[2])};
+    updater_lifetime = atoi(argv[3]);
+    int num_trials{atoi(argv[4])};
 
     uint64_t global_table_size = ((uint64_t)1) << log_global_table_size;
     ygm::container::array<uint64_t> arr(world, global_table_size);
@@ -82,11 +72,12 @@ int main(int argc, char **argv) {
     std::uniform_int_distribution<uint64_t> dist;
 
     if (world.rank0()) {
-      std::cout << world.layout().node_size() << ", "
-                << world.layout().local_size() << ", " << ygm_buffer_capacity
-                << ", " << ygm_num_listeners << ", " << world.routing_protocol()
-                << ", " << global_table_size << ", "
-                << local_updaters * world.size() << ", " << updater_lifetime;
+      std::cout
+          << world.layout().node_size() << ", "
+          << world.layout().local_size() /*<< ", " << ygm_buffer_capacity*/
+          /*<< ", " << world.routing_protocol()*/
+          << ", " << global_table_size << ", " << local_updaters * world.size()
+          << ", " << updater_lifetime;
     }
 
     // world.cout0("Initializing array values");
@@ -109,8 +100,6 @@ int main(int argc, char **argv) {
 
       world.barrier();
 
-      world.set_track_stats(true);
-
       ygm::timer update_timer{};
 
       for (auto &u : updater_vec) {
@@ -119,8 +108,6 @@ int main(int argc, char **argv) {
       }
 
       world.barrier();
-
-      world.set_track_stats(false);
 
       double trial_time = update_timer.elapsed();
 
@@ -143,10 +130,7 @@ int main(int argc, char **argv) {
 
       std::cout << std::endl;
     }
-
-    auto experiment_stats = world.stats_snapshot();
-    // write_stats_files(world, experiment_stats, stats_output_prefix);
   }
 
-  MPI_Finalize();
+  return 0;
 }

@@ -138,6 +138,8 @@ class rmat_edge_generator {
     }
   }
 
+  edge_type generate_single_edge() { return generate_edge(); }
+
  protected:
   /// Generates a new RMAT edge.  This function was adapted from the Boost Graph
   /// Library.

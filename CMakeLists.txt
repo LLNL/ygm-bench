@@ -17,17 +17,52 @@ include(FetchContent)
 #  MPI
 find_package(MPI)
 
+#
+# Boost
+#
+# Disable the boost-cmake feature (BoostConfig.cmake or boost-config.cmake)
+# because there is a tricky behavior/issue. We use FetchContent to download
+# Boost and find_package to find the location of Boost. As find_package natively
+# supports Boost, we do not need to use the boost-cmake feature.
+set(Boost_NO_BOOST_CMAKE ON)
+
+find_package(Boost 1.75 QUIET)
+if (NOT Boost_FOUND)
+    FetchContent_Declare(
+        Boost
+        URL https://boostorg.jfrog.io/artifactory/main/release/1.77.0/source/boost_1_77_0.tar.bz2
+    )
+    FetchContent_GetProperties(Boost)
+    if (Boost_POPULATED)
+        message(STATUS ${PROJECT_NAME}
+                       " found already populated Boost dependency: "
+                       ${boost_SOURCE_DIR}
+        )
+    else ()
+    	FetchContent_Populate(Boost)
+    	message(STATUS ${PROJECT_NAME} " cloned Boost dependency: "
+                       ${boost_SOURCE_DIR}
+    	)
+    endif ()
+    set(BOOST_ROOT ${boost_SOURCE_DIR})
+    find_package(Boost 1.75)
+else ()
+    message(STATUS ${PROJECT_NAME} " found Boost dependency: "
+                   ${Boost_INCLUDE_DIR}
+    )
+endif ()
+
 # 
 #  cereal 
-find_package(cereal QUIET) 
-if (NOT cereal_FOUND)     
-	set(JUST_INSTALL_CEREAL TRUE)
-	FetchContent_Declare(cereal             
-		GIT_REPOSITORY https://github.com/USCiLab/cereal.git             
-		GIT_TAG master             
-		)     
-	FetchContent_MakeAvailable(cereal) 
-endif ()
+#find_package(cereal QUIET) 
+#if (NOT cereal_FOUND)     
+#	set(JUST_INSTALL_CEREAL TRUE)
+#	FetchContent_Declare(cereal             
+#		GIT_REPOSITORY https://github.com/USCiLab/cereal.git             
+#		GIT_TAG master             
+#		)     
+#	FetchContent_MakeAvailable(cereal) 
+#endif ()
 
 #
 #  ygm
@@ -36,14 +71,12 @@ if(NOT ygm_FOUND)
 	if(DEFINED ENV{YGM_BENCH_YGM_REPO})
 		set(YGM_REPO $ENV{YGM_BENCH_YGM_REPO})
 	else()
-		#set(YGM_REPO "https://github.com/llnl/ygm.git")
-		set(YGM_REPO "https://github.com/bwpriest/ygm.git")
+		set(YGM_REPO "https://github.com/llnl/ygm.git")
 	endif()
 	if(DEFINED ENV{YGM_BENCH_YGM_TAG})
 		set(YGM_TAG $ENV{YGM_BENCH_YGM_TAG})
 	else()
-		#set(YGM_TAG "feature/multi_listener_routing")
-		set(YGM_TAG "feature/remove_map_pair")
+		set(YGM_TAG "develop")
 	endif()
 
 	FetchContent_Declare(
@@ -62,12 +95,14 @@ function(setup_ygm_target exe_name)
 	add_executable(${exe_name} ${exe_name}.cpp)
 	target_link_libraries(${exe_name} PRIVATE ygm::ygm)
 	target_include_directories(${exe_name} PRIVATE "${PROJECT_SOURCE_DIR}/include")
+	target_include_directories(${exe_name} PRIVATE ${Boost_INCLUDE_DIRS})
 endfunction()
 
 function(setup_mpi_target exe_name)
 	add_executable(${exe_name} ${exe_name}.cpp)
 	target_link_libraries(${exe_name} PRIVATE MPI::MPI_CXX)
 	target_include_directories(${exe_name} PRIVATE "${PROJECT_SOURCE_DIR}/include")
+	target_include_directories(${exe_name} PRIVATE ${Boost_INCLUDE_DIRS})
 endfunction()
 
 if (NOT CMAKE_BUILD_TYPE)

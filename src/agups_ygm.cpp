@@ -10,7 +10,76 @@
 #include <ygm/detail/ygm_cereal_archive.hpp>
 #include <ygm/utility.hpp>
 
-static int updater_lifetime;
+struct parameters_t {
+  int     log_table_size;
+  int64_t local_updaters;
+  int     updater_lifetime;
+  int     num_trials;
+  bool    pretty_print;
+
+  parameters_t()
+      : log_table_size(15),
+        local_updaters(1024 * 1024),
+        updater_lifetime(100),
+        num_trials(5),
+        pretty_print(false) {}
+};
+
+void usage(ygm::comm &comm) {
+  comm.cerr0() << "agups_ygm usage:"
+               << "\n\t-s <int>\t- Log_2 of global table size"
+               << "\n\t-u <int>\t- Number of updaters spawned per rank"
+               << "\n\t-l <int>\t- Updater lifetime"
+               << "\n\t-t <int>\t- Number of trials"
+               << "\n\t-p\t\t- Pretty print output"
+               << "\n\t-h\t\t- Print help" << std::endl;
+}
+
+parameters_t parse_cmd_line(int argc, char **argv, ygm::comm &comm) {
+  parameters_t params;
+  int          c;
+  bool         prn_help = false;
+
+  // Suppress error messages from getopt
+  extern int opterr;
+  opterr = 0;
+
+  while ((c = getopt(argc, argv, "s:u:l:t:ph")) != -1) {
+    switch (c) {
+      case 'h':
+        prn_help = true;
+        break;
+      case 's':
+        params.log_table_size = atoi(optarg);
+        break;
+      case 'u':
+        params.local_updaters = atoll(optarg);
+        break;
+      case 'l':
+        params.updater_lifetime = atoi(optarg);
+        break;
+      case 't':
+        params.num_trials = atoi(optarg);
+        break;
+      case 'p':
+        params.pretty_print = true;
+        break;
+      default:
+        comm.cerr0() << "Unrecognized option: " << char(optopt) << std::endl;
+        prn_help = true;
+        break;
+    }
+  }
+
+  if (prn_help) {
+    usage(comm);
+    exit(-1);
+  }
+
+  return params;
+}
+
+static parameters_t params;
 
 class updater {
  public:
@@ -21,7 +90,7 @@ class updater {
 
   void increment_counter() const { ++m_counter; }
 
-  bool is_alive() const { return get_counter() < updater_lifetime; }
+  bool is_alive() const { return get_counter() < params.updater_lifetime; }
 
   uint32_t get_counter() const { return m_counter; }
 
@@ -60,41 +129,42 @@ int main(int argc, char **argv) {
   {
     ygm::comm world(&argc, &argv);
 
-    int     log_global_table_size{atoi(argv[1])};
-    int64_t local_updaters{atoll(argv[2])};
-    updater_lifetime = atoi(argv[3]);
-    int num_trials{atoi(argv[4])};
+    params = parse_cmd_line(argc, argv, world);
 
-    uint64_t global_table_size = ((uint64_t)1) << log_global_table_size;
+    uint64_t global_table_size = ((uint64_t)1) << params.log_table_size;
     ygm::container::array<uint64_t> arr(world, global_table_size);
+
+    boost::json::object output;
+
+    output["NAME"]                     = "AGUPS_YGM";
+    output["TIME"]                     = boost::json::array();
+    output["GUPS"]                     = boost::json::array();
+    output["GLOBAL_ASYNC_COUNT"]       = boost::json::array();
+    output["GLOBAL_ISEND_COUNT"]       = boost::json::array();
+    output["GLOBAL_ISEND_BYTES"]       = boost::json::array();
+    output["MAX_WAITSOME_ISEND_IRECV"] = boost::json::array();
+    output["MAX_WAITSOME_IALLREDUCE"]  = boost::json::array();
+    output["COUNT_IALLREDUCE"]         = boost::json::array();
+    output["TABLE_SIZE"]               = global_table_size;
+    output["UPDATERS"]                 = params.local_updaters * world.size();
+    output["UPDATER_LIFESPAN"]         = params.updater_lifetime;
+
+    parse_welcome(world, output);
 
     std::mt19937                            gen(world.rank());
     std::uniform_int_distribution<uint64_t> dist;
 
-    if (world.rank0()) {
-      std::cout
-          << world.layout().node_size() << ", "
-          << world.layout().local_size() /*<< ", " << ygm_buffer_capacity*/
-          /*<< ", " << world.routing_protocol()*/
-          << ", " << global_table_size << ", " << local_updaters * world.size()
-          << ", " << updater_lifetime;
-    }
-
-    // world.cout0("Initializing array values");
     arr.for_all(
         [&dist, &gen](const auto index, auto &value) { value = dist(gen); });
 
-    double total_update_time{0.0};
-
     world.cf_barrier();
-    // world.cout0("Beginning AGUPS trials");
 
-    world.stats_reset();
+    for (int trial = 0; trial < params.num_trials; ++trial) {
+      world.stats_reset();
 
-    for (int trial = 0; trial < num_trials; ++trial) {
       std::vector<updater> updater_vec;
 
-      for (int64_t i = 0; i < local_updaters; ++i) {
+      for (int64_t i = 0; i < params.local_updaters; ++i) {
         updater_vec.emplace_back(updater(dist(gen)));
       }
 
@@ -110,25 +180,21 @@ int main(int argc, char **argv) {
       world.barrier();
 
       double trial_time = update_timer.elapsed();
+      double trial_gups = params.local_updaters * world.size() *
+                          params.updater_lifetime / trial_time /
+                          (1000 * 1000 * 1000);
 
-      if (world.rank0()) {
-        double trial_gups = local_updaters * world.size() * updater_lifetime /
-                            trial_time / (1000 * 1000 * 1000);
-        // std::cout << "Trial " << trial + 1 << " GUPS: " << trial_gups
-        //<< std::endl;
+      output["TIME"].as_array().emplace_back(trial_time);
+      output["GUPS"].as_array().emplace_back(trial_gups);
 
-        std::cout << ", " << trial_time << ", " << trial_gups;
-      }
-
-      total_update_time += trial_time;
+      parse_stats(world, output);
     }
 
-    if (world.rank0()) {
-      double gups = local_updaters * world.size() * num_trials *
-                    updater_lifetime / total_update_time / (1000 * 1000 * 1000);
-      // std::cout << "Average GUPS: " << gups << std::endl;
-
-      std::cout << std::endl;
+    if (params.pretty_print) {
+      pretty_print(world.cout0(), output);
+      world.cout0() << "\n";
+    } else {
+      world.cout0(output);
     }
   }
 

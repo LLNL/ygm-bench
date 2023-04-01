@@ -5,6 +5,9 @@
 
 #include <krowkee_helper.hpp>
 #include <rmat_edge_generator.hpp>
+#include <utility.hpp>
+
+#include <boost/json/src.hpp>
 
 #include <random>
 
@@ -52,7 +55,7 @@ struct rmat_edge_vec_generator_t {
     rmat_edge_generator rmat(params.log_vertex_count, params.local_edge_count,
                              seed);
     for (int i(0); i < _local_edge_count; ++i) {
-      _edges.push_back(rmat.generate_single_edge());
+      _edges[i] = rmat.generate_single_edge();
     }
   }
 
@@ -101,17 +104,9 @@ struct rmat_edge_stream_generator_t {
 };
 
 int main(int argc, char **argv) {
-  int provided;
-  MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-  if (provided != MPI_THREAD_MULTIPLE) {
-    throw std::runtime_error(
-        "MPI_Init_thread: MPI_THREAD_MULTIPLE not provided.");
-  }
-
+  ygm::comm world(&argc, &argv);
   {
-    parameters_t params = parse_args(argc, argv);
-
-    ygm::comm world(MPI_COMM_WORLD, params.ygm_buffer_capacity);
+    parameters_t params = parse_args(argc, argv, world);
 
     if (params.rmat) {
       if (params.stream) {
@@ -127,6 +122,4 @@ int main(int argc, char **argv) {
       }
     }
   }
-
-  MPI_Finalize();
 }

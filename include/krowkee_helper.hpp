@@ -18,6 +18,8 @@
 #include <ygm/detail/ygm_ptr.hpp>
 #include <ygm/utility.hpp>
 
+#include <boost/json/src.hpp>
+
 #include <string>
 
 using sketch_type_t = krowkee::util::sketch_type_t;
@@ -29,102 +31,174 @@ using Dense32CountSketch_t =
                             std::shared_ptr, krowkee::hash::MulAddShift>;
 
 struct parameters_t {
-  int         ygm_buffer_capacity;
-  int         range_size;
-  int         log_vertex_count;
-  size_t      vertex_count;
-  size_t      local_edge_count;
-  int         num_trials;
-  uint32_t    seed;
-  std::string stats_output_prefix;
-  bool        embed;
-  bool        stream;
-  bool        rmat;
+  int      range_size;
+  int      log_vertex_count;
+  size_t   vertex_count;
+  size_t   local_edge_count;
+  int      num_trials;
+  uint32_t seed;
+  bool     embed;
+  bool     stream;
+  bool     rmat;
+  bool     pretty_print;
+
+  parameters_t()
+      : range_size(8),
+        log_vertex_count(20),
+        local_edge_count(1000000),
+        num_trials(5),
+        seed(1),
+        embed(true),
+        stream(false),
+        rmat(false),
+        pretty_print(false) {}
 };
 
-parameters_t parse_args(int argc, char **argv) {
-  std::stringstream ss;
-  ss << "\nexpected usage:  " << argv[0] << " ygm_buffer_capacity"
-     << " range_size"
-     << " log_vertex_count"
-     << " local_edge_count"
-     << " num_trials"
-     << " seed"
-     << " stats_output_prefix"
-     << " embed_bool"
-     << " stream_bool"
-     << " rmat_bool" << std::endl;
-  if (argc != 11) {
-    throw std::range_error(ss.str());
-  }
+void usage(ygm::comm &comm) {
+  comm.cerr0()
+      << "embed_ygm usage:"
+      << "\n\t-d <int>\t- Range size"
+      << "\n\t-v <int>\t- Log_2 of global vertex count"
+      << "\n\t-e <int>\t- Number of edges per rank"
+      << "\n\t-t <int>\t- Number of trials"
+      << "\n\t-s <int>\t- Seed"
+      << "\n\t-r\t\t- Flag indicating insertions should use RMAT generator"
+      << "\n\t-b\t\t- Flag to embed data"
+      << "\n\t-m\t\t- Flag indicating streaming mode"
+      << "\n\t-p\t\t- Pretty print output"
+      << "\n\t-h\t\t- Print help" << std::endl;
+}
+
+parameters_t parse_args(int argc, char **argv, ygm::comm &comm) {
   parameters_t params{};
-  params.ygm_buffer_capacity = atoi(argv[1]);
-  params.range_size          = atoi(argv[2]);
-  params.log_vertex_count    = atoi(argv[3]);
-  params.vertex_count        = ((size_t)1) << params.log_vertex_count;
-  params.local_edge_count    = atoll(argv[4]);
-  params.num_trials          = atoi(argv[5]);
-  params.seed                = atoi(argv[6]);
-  params.stats_output_prefix = argv[7];
-  params.embed               = atoi(argv[8]) == 1;
-  params.stream              = atoi(argv[9]) == 1;
-  params.rmat                = atoi(argv[10]) == 1;
+  int          c;
+  bool         prn_help = false;
+
+  // Suppress error messages from getopt
+  extern int opterr;
+  opterr = 0;
+
+  while ((c = getopt(argc, argv, "d:v:e:t:s:rbmph")) != -1) {
+    switch (c) {
+      case 'h':
+        prn_help = true;
+        break;
+      case 'd':
+        params.range_size = atoi(optarg);
+        break;
+      case 'v':
+        params.log_vertex_count = atoi(optarg);
+        break;
+      case 'e':
+        params.local_edge_count = atoll(optarg);
+        break;
+      case 't':
+        params.num_trials = atoi(optarg);
+        break;
+      case 's':
+        params.seed = atoi(optarg);
+        break;
+      case 'r':
+        params.rmat = true;
+        break;
+      case 'b':
+        params.embed = true;
+        break;
+      case 'm':
+        params.stream = true;
+        break;
+      case 'p':
+        params.pretty_print = true;
+        break;
+      default:
+        comm.cerr0() << "Unrecognized option: " << char(optopt) << std::endl;
+        prn_help = true;
+        break;
+    }
+  }
+
+  params.vertex_count = ((size_t)1) << params.log_vertex_count;
+
+  if (prn_help) {
+    usage(comm);
+    exit(-1);
+  }
 
   return params;
 }
 
 template <typename EdgeGeneratorType, typename MapType>
 void do_streaming_analysis(ygm::comm &world, MapType &vertex_map,
-                           const parameters_t &params) {
-  EdgeGeneratorType edge_stream(world, params, 0);
-  double            total_update_time{0.0};
-
-  world.stats_reset();
-
+                           const parameters_t  &params,
+                           boost::json::object &output) {
   for (int trial = 0; trial < params.num_trials; ++trial) {
-    world.barrier();
+    EdgeGeneratorType edge_stream(world, params, 0);
 
-    world.set_track_stats(true);
+    world.barrier();
+    world.stats_reset();
 
     ygm::timer update_timer{};
 
     for (int i(0); i < params.local_edge_count; ++i) {
-      std::pair<std::uint64_t, std::uint64_t> edge(edge_stream());
+      const std::pair<std::uint64_t, std::uint64_t> edge(edge_stream());
       vertex_map.async_visit(
           edge.first,
-          [](auto kv_pair, const std::uint64_t dst) {
-            kv_pair.second.insert(dst);
+          [](const auto &key, auto &value, const std::uint64_t &dst) {
+            value.insert(dst);
           },
           edge.second);
     }
 
     world.barrier();
 
-    world.set_track_stats(false);
-
     double trial_time = update_timer.elapsed();
 
-    if (world.rank0()) {
-      double trial_rate = params.local_edge_count * world.size() / trial_time /
-                          (1000 * 1000 * 1000);
+    output["TIME"].as_array().emplace_back(trial_time);
+    double trial_rate = params.local_edge_count * world.size() / trial_time /
+                        (1000 * 1000 * 1000);
 
-      std::cout << ", " << trial_time << ", " << trial_rate;
-    }
+    output["INSERTS_PER_SECOND(BILLIONS)"].as_array().emplace_back(trial_rate);
 
-    total_update_time += trial_time;
+    parse_stats(world, output);
   }
 }
 
 template <typename EdgeGeneratorType>
 void do_main(ygm::comm &world, const parameters_t &params) {
-  if (world.rank0()) {
-    std::cout << world.layout().node_size() << ", "
-              << world.layout().local_size() << ", "
-              << params.ygm_buffer_capacity << ", " << world.routing_protocol()
-              << ", " << params.range_size << ", " << params.vertex_count
-              << ", " << params.local_edge_count * world.size() << ", "
-              << params.seed;
+  /*
+if (world.rank0()) {
+std::cout << world.layout().node_size() << ", "
+        << world.layout().local_size() << ", "
+        << params.ygm_buffer_capacity << ", " << world.routing_protocol()
+        << ", " << params.range_size << ", " << params.vertex_count
+        << ", " << params.local_edge_count * world.size() << ", "
+        << params.seed;
+}
+  */
+
+  boost::json::object output;
+
+  output["NAME"]                         = "EMBED_YGM";
+  output["TIME"]                         = boost::json::array();
+  output["INSERTS_PER_SECOND(BILLIONS)"] = boost::json::array();
+  output["GLOBAL_ASYNC_COUNT"]           = boost::json::array();
+  output["GLOBAL_ISEND_COUNT"]           = boost::json::array();
+  output["GLOBAL_ISEND_BYTES"]           = boost::json::array();
+  output["MAX_WAITSOME_ISEND_IRECV"]     = boost::json::array();
+  output["MAX_WAITSOME_IALLREDUCE"]      = boost::json::array();
+  output["COUNT_IALLREDUCE"]             = boost::json::array();
+  output["EMBEDDING_DIMENSION"]          = params.range_size;
+  output["VERTICES"]                     = params.vertex_count;
+  output["EDGES"]  = params.local_edge_count * world.size();
+  output["SEED"]   = params.seed;
+  output["STREAM"] = params.stream;
+  if (params.rmat) {
+    output["GENERATOR"] = "RMAT";
+  } else {
+    output["GENERATOR"] = "UNIFORM";
   }
+
+  parse_welcome(world, output);
 
   if (params.embed) {
     typedef Dense32CountSketch_t    sk_t;
@@ -135,12 +209,18 @@ void do_main(ygm::comm &world, const parameters_t &params) {
     sk_t     default_vertex(sf_ptr);
     ygm::container::map<std::uint64_t, sk_t> vertex_map(world, default_vertex);
 
-    do_streaming_analysis<EdgeGeneratorType>(world, vertex_map, params);
+    do_streaming_analysis<EdgeGeneratorType>(world, vertex_map, params, output);
   } else {
     std::set<std::uint64_t>                                     default_vertex;
     ygm::container::map<std::uint64_t, std::set<std::uint64_t>> vertex_map(
         world, default_vertex);
-    do_streaming_analysis<EdgeGeneratorType>(world, vertex_map, params);
+    do_streaming_analysis<EdgeGeneratorType>(world, vertex_map, params, output);
   }
-  world.cout0("");
+
+  if (params.pretty_print) {
+    pretty_print(world.cout0(), output);
+    world.cout0() << "\n";
+  } else {
+    world.cout0(output);
+  }
 }

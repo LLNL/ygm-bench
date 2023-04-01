@@ -9,5 +9,6 @@ setup_ygm_target(histo_ygm)
 setup_ygm_target(cc_ygm)
 setup_ygm_target(rmat_example)
 
-# Only using ygm to get access to utility.hpp
 setup_ygm_target(around_the_world_mpi)
+
+setup_krowkee_target(embed_ygm)

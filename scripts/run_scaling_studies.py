@@ -26,6 +26,8 @@ def parse_arguments():
             RMAT experiments")
     parser.add_argument("--cc-linked-list-graph-scale-per-node", type=int, help="Logarithmic graph scale per node for connected components \
             linked list experiments")
+    parser.add_argument("-v", "--krowkee-vertex-scale-per-node", type=int, help="log_2 of vertex count per node for \
+            krowkee experiments")
 
     return parser.parse_known_args()
 
@@ -51,12 +53,14 @@ def run_experiments(args, passthrough_args):
             cc_rmat_scale = args.cc_rmat_graph_scale_per_node + int(math.log2(num_nodes))
         if args.cc_linked_list_graph_scale_per_node:
             cc_linked_list_scale = args.cc_linked_list_graph_scale_per_node + int(math.log2(num_nodes))
+        krowkee_vertex_scale = args.krowkee_vertex_scale_per_node + int(math.log2(num_nodes))
 
         run_experiments_options = ""
 
         run_experiments_options += " --table-scale " + str(table_scale) 
         run_experiments_options += " --cc-rmat-graph-scale " + str(cc_rmat_scale)
         run_experiments_options += " --cc-linked-list-graph-scale " + str(cc_linked_list_scale)
+        run_experiments_options += " --krowkee-log-vertex-count " + str(krowkee_vertex_scale)
 
         #print(run_experiments_options)
 
@@ -83,7 +87,7 @@ def run_experiments(args, passthrough_args):
                 sbatch_script += "\n#SBATCH -A " + args.account
 
             #sbatch_script += "\n#SBATCH -p pdebug"
-            sbatch_script += "\n#SBATCH -t 12:00:00"
+            sbatch_script += "\n#SBATCH -t 3:00:00"
             #sbatch_script += "\n#SBATCH -t 1:00:00"
             sbatch_script += "\n#SBATCH -o " + output_filename
             sbatch_script += "\n#SBATCH -N " + str(num_nodes)

@@ -2,6 +2,7 @@
 // Project Developers. See the top-level COPYRIGHT file for details.
 //
 // SPDX-License-Identifier: MIT
+#pragma once
 
 #include <fstream>
 #include <string>
@@ -151,7 +152,3 @@ std::vector<std::vector<T>> gather_vectors_rank_0(
   return to_return;
 }
 
-void write_stats_files(ygm::comm &world, const std::string &experiment_name,
-                       std::ostream &os) {
-  world.stats_print(experiment_name, os);
-}

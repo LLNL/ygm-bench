@@ -5,6 +5,7 @@ import subprocess
 import os
 import time
 import itertools
+import sys
 
 class command_parameter_generator:
     def __init__(self, name):
@@ -71,6 +72,7 @@ def parse_commands():
     parser.add_argument("--no-agups", action="store_true", help="Skip agups experiment")
     parser.add_argument("--no-cc-rmat", action="store_true", help="Skip connected components RMAT experiment")
     parser.add_argument("--no-cc-linked-list", action="store_true", help="Skip connected components linked-list experiment")
+    parser.add_argument("--no-embed-rmat", action="store_true", help="Skip krowkee experiment embedding RMAT data")
 
     parser.add_argument("-n", "--num-trips", nargs="*", help="Number of trips around the world in around-the-world experiments")
     parser.add_argument("-s", "--table-scale", nargs="*", help="log_2 of table size for use in histo and agups experiments")
@@ -84,6 +86,12 @@ def parse_commands():
     parser.add_argument("--cc-linked-list-graph-scale", nargs="*", help="Logarithmic graph scale for connected components \
             linked list experiments")
     parser.add_argument("--cc-edgefactor", nargs="*", help="Edgefactor for connected components RMAT experiments")
+    parser.add_argument("-d", "--embedding-dimension", nargs="*", help="Number of embedding dimensions for krowkee \
+            experiments")
+    parser.add_argument("-v", "--krowkee-log-vertex-count", nargs="*", help="log_2 of number of vertices for krowkee \
+            experiments")
+    parser.add_argument("--krowkee-edges-per-rank", nargs="*", help="Edges generated per rank for krowkee experiments")
+    parser.add_argument("--krowkee-seed", nargs="*", help="Seed for krowkee experiments")
 
     args = parser.parse_args()
 
@@ -180,6 +188,18 @@ def parse_commands():
             #exp_commands["cc_linked_list"] += ["-g", str(args.cc_graph_scale)]
             exp_commands["cc_linked_list"].add_arg("-g", args.cc_graph_scale)
 
+    # EMBED_YGM
+    if (not args.no_embed_rmat):
+        exp_commands["embed_rmat"] = command_parameter_generator("../build/src/embed_ygm")
+        exp_commands["embed_rmat"].add_required_flag("-r")
+        exp_commands["embed_rmat"].add_required_flag("-b")
+        if args.embedding_dimension:
+            exp_commands["embed_rmat"].add_arg("-d", args.embedding_dimension)
+        if args.krowkee_log_vertex_count:
+            exp_commands["embed_rmat"].add_arg("-v", args.krowkee_log_vertex_count)
+        if args.krowkee_seed:
+            exp_commands["embed_rmat"].add_arg("-s", args.krowkee_seed)
+
     # Shared arguments
     if args.num_trials:
         for exp_name, command in exp_commands.items():
@@ -246,10 +266,7 @@ def main():
                         time.sleep(1)
                         process = subprocess.run(l + command, \
                                 env=dict(os.environ, YGM_COMM_ROUTING=routing, YGM_COMM_BUFFER_SIZE_KB=buffer_size), \
-                                stdout=subprocess.PIPE, text=True)
-
-                        if (output == None):
-                            print(process.stdout, end='')
+                                stdout=sys.stdout, text=True)
 
 
 if __name__ == "__main__":

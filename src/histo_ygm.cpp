@@ -8,7 +8,6 @@
 #include <utility.hpp>
 #include <ygm/comm.hpp>
 #include <ygm/container/array.hpp>
-#include <ygm/container/detail/container_traits.hpp>
 #include <ygm/container/detail/reducing_adapter.hpp>
 #include <ygm/detail/ygm_cereal_archive.hpp>
 #include <ygm/utility.hpp>
@@ -103,10 +102,9 @@ std::vector<uint64_t> generate_indices(ygm::comm     &world,
   uint64_t global_table_size = ((uint64_t)1) << log_table_size;
 
   if (dist == parameters_t::distribution::uniform) {
+    std::mt19937 gen(world.size() * trial + world.rank());
+    std::uniform_int_distribution<uint64_t> dist(0, global_table_size - 1);
     for (int64_t i = 0; i < local_updates; ++i) {
-      std::mt19937 gen(world.size() * trial + world.rank());
-      std::uniform_int_distribution<uint64_t> dist(0, global_table_size - 1);
-
       indices.push_back(dist(gen));
     }
   } else if (dist == parameters_t::distribution::rmat) {
@@ -128,7 +126,8 @@ template <typename Container>
 void run_reductions(ygm::comm &world, const std::vector<uint64_t> &indices,
                     Container &cont) {
   for (const auto &index : indices) {
-    if constexpr (ygm::container::detail::is_array<Container>) {
+    if constexpr (ygm::container::check_ygm_container_type<
+                      Container, ygm::container::array_tag>()) {
       cont.async_visit(index, [](const auto i, auto v) { ++v; });
     } else {  // For reducing_adapter
       cont.async_reduce(index, 1);

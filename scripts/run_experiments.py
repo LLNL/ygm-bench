@@ -72,9 +72,10 @@ def parse_commands():
     parser.add_argument("--no-agups", action="store_true", help="Skip agups experiment")
     parser.add_argument("--no-cc-rmat", action="store_true", help="Skip connected components RMAT experiment")
     parser.add_argument("--no-cc-linked-list", action="store_true", help="Skip connected components linked-list experiment")
-    parser.add_argument("--no-embed-rmat", action="store_true", help="Skip krowkee experiment embedding RMAT data")
+    parser.add_argument("--no-embed-ygm", action="store_true", help="Skip krowkee experiment embedding graph vertices")
 
     parser.add_argument("-n", "--num-trips", nargs="*", help="Number of trips around the world in around-the-world experiments")
+    parser.add_argument("--no-wait-until", action="store_true", help="Do not test ygm::comm::wait_until() in around-the-world")
     parser.add_argument("-s", "--table-scale", nargs="*", help="log_2 of table size for use in histo and agups experiments")
     parser.add_argument("-i", "--histo-inserts-per-rank", nargs="*", help="Number of insertions spawned by each rank in histo experiments")
     parser.add_argument("-u", "--agups-updaters-per-rank", nargs="*", help="Number of updaters spawned by each rank in agups experiments")
@@ -104,6 +105,8 @@ def parse_commands():
         if args.num_trips:
             #exp_commands["atw_ygm"] += [" -n", str(args.num_trips)]
             exp_commands["atw_ygm"].add_arg('-n', args.num_trips)
+        if not args.no_wait_until:
+            exp_commands["atw_ygm"].add_flag('-w')
 
     # ATW_MPI arguments
     if (not args.no_atw_mpi):
@@ -189,16 +192,17 @@ def parse_commands():
             exp_commands["cc_linked_list"].add_arg("-g", args.cc_graph_scale)
 
     # EMBED_YGM
-    if (not args.no_embed_rmat):
-        exp_commands["embed_rmat"] = command_parameter_generator("../build/src/embed_ygm")
-        exp_commands["embed_rmat"].add_required_flag("-r")
-        exp_commands["embed_rmat"].add_required_flag("-b")
+    if (not args.no_embed_ygm):
+        exp_commands["embed_ygm"] = command_parameter_generator("../build/src/embed_ygm")
+        exp_commands["embed_ygm"].add_required_flag("-b")
+        exp_commands["embed_ygm"].add_flag("-m")
+        exp_commands["embed_ygm"].add_flag("-r")
         if args.embedding_dimension:
-            exp_commands["embed_rmat"].add_arg("-d", args.embedding_dimension)
+            exp_commands["embed_ygm"].add_arg("-d", args.embedding_dimension)
         if args.krowkee_log_vertex_count:
-            exp_commands["embed_rmat"].add_arg("-v", args.krowkee_log_vertex_count)
+            exp_commands["embed_ygm"].add_arg("-v", args.krowkee_log_vertex_count)
         if args.krowkee_seed:
-            exp_commands["embed_rmat"].add_arg("-s", args.krowkee_seed)
+            exp_commands["embed_ygm"].add_arg("-s", args.krowkee_seed)
 
     # Shared arguments
     if args.num_trials:

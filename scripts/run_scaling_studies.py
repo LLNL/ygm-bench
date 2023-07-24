@@ -71,7 +71,7 @@ def run_experiments(args, passthrough_args):
                 bsub_script += "\n#BSUB -G " + args.account
 
             #bsub_script += "\n#BSUB -q pdebug"
-            bsub_script += "\n#BSUB -W 720"
+            bsub_script += "\n#BSUB -W 360"
             #bsub_script += "\n#BSUB -W 60"
             bsub_script += "\n#BSUB -o " + output_filename
             bsub_script += "\n#BSUB -nnodes " + str(num_nodes)
@@ -87,8 +87,8 @@ def run_experiments(args, passthrough_args):
                 sbatch_script += "\n#SBATCH -A " + args.account
 
             #sbatch_script += "\n#SBATCH -p pdebug"
-            sbatch_script += "\n#SBATCH -t 3:00:00"
-            #sbatch_script += "\n#SBATCH -t 1:00:00"
+            #sbatch_script += "\n#SBATCH -t 3:00:00"
+            sbatch_script += "\n#SBATCH -t 1:00:00"
             sbatch_script += "\n#SBATCH -o " + output_filename
             sbatch_script += "\n#SBATCH -N " + str(num_nodes)
             #sbatch_script += "\n#SBATCH --ntasks-per-node " + str(args.ntasks_per_node)

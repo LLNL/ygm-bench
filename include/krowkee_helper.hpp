@@ -14,6 +14,7 @@
 #include <krowkee/util/ygm_tests.hpp>
 
 #include <ygm/comm.hpp>
+#include <ygm/container/array.hpp>
 #include <ygm/detail/ygm_cereal_archive.hpp>
 #include <ygm/detail/ygm_ptr.hpp>
 #include <ygm/utility.hpp>
@@ -31,16 +32,19 @@ using Dense32CountSketch_t =
                             std::shared_ptr, krowkee::hash::MulAddShift>;
 
 struct parameters_t {
-  int      range_size;
-  int      log_vertex_count;
-  size_t   vertex_count;
-  size_t   local_edge_count;
-  int      num_trials;
-  uint32_t seed;
-  bool     embed;
-  bool     stream;
-  bool     rmat;
-  bool     pretty_print;
+  enum class container { map, array };
+
+  int       range_size;
+  int       log_vertex_count;
+  size_t    vertex_count;
+  size_t    local_edge_count;
+  int       num_trials;
+  uint32_t  seed;
+  container cont;
+  bool      embed;
+  bool      stream;
+  bool      rmat;
+  bool      pretty_print;
 
   parameters_t()
       : range_size(8),
@@ -48,6 +52,7 @@ struct parameters_t {
         local_edge_count(1000000),
         num_trials(5),
         seed(1),
+        cont(container::array),
         embed(true),
         stream(false),
         rmat(false),
@@ -78,7 +83,7 @@ parameters_t parse_args(int argc, char **argv, ygm::comm &comm) {
   extern int opterr;
   opterr = 0;
 
-  while ((c = getopt(argc, argv, "d:v:e:t:s:rbmph")) != -1) {
+  while ((c = getopt(argc, argv, "d:v:e:t:s:mrbaph")) != -1) {
     switch (c) {
       case 'h':
         prn_help = true;
@@ -98,13 +103,16 @@ parameters_t parse_args(int argc, char **argv, ygm::comm &comm) {
       case 's':
         params.seed = atoi(optarg);
         break;
+      case 'm':
+        params.cont = parameters_t::container::map;
+        break;
       case 'r':
         params.rmat = true;
         break;
       case 'b':
         params.embed = true;
         break;
-      case 'm':
+      case 'a':
         params.stream = true;
         break;
       case 'p':
@@ -187,6 +195,7 @@ std::cout << world.layout().node_size() << ", "
   output["MAX_WAITSOME_ISEND_IRECV"]     = boost::json::array();
   output["MAX_WAITSOME_IALLREDUCE"]      = boost::json::array();
   output["COUNT_IALLREDUCE"]             = boost::json::array();
+  output["EMBED"]                        = params.embed;
   output["EMBEDDING_DIMENSION"]          = params.range_size;
   output["VERTICES"]                     = params.vertex_count;
   output["EDGES"]  = params.local_edge_count * world.size();
@@ -196,6 +205,13 @@ std::cout << world.layout().node_size() << ", "
     output["GENERATOR"] = "RMAT";
   } else {
     output["GENERATOR"] = "UNIFORM";
+  }
+  if (params.cont == parameters_t::container::map) {
+    output["CONTAINER"] = "MAP";
+  } else if (params.cont == parameters_t::container::array) {
+    output["CONTAINER"] = "ARRAY";
+  } else {
+    output["CONTAINER"] = "UNKNOWN";
   }
 
   parse_welcome(world, output);
@@ -207,14 +223,36 @@ std::cout << world.layout().node_size() << ", "
 
     sf_ptr_t sf_ptr(std::make_shared<sf_t>(params.range_size, params.seed));
     sk_t     default_vertex(sf_ptr);
-    ygm::container::map<std::uint64_t, sk_t> vertex_map(world, default_vertex);
 
-    do_streaming_analysis<EdgeGeneratorType>(world, vertex_map, params, output);
+    if (params.cont == parameters_t::container::map) {
+      ygm::container::map<std::uint64_t, sk_t> vertex_map(world,
+                                                          default_vertex);
+
+      do_streaming_analysis<EdgeGeneratorType>(world, vertex_map, params,
+                                               output);
+    } else if (params.cont == parameters_t::container::array) {
+      ygm::container::array<sk_t> vertex_array(world, params.vertex_count,
+                                               default_vertex);
+
+      do_streaming_analysis<EdgeGeneratorType>(world, vertex_array, params,
+                                               output);
+    }
   } else {
-    std::set<std::uint64_t>                                     default_vertex;
-    ygm::container::map<std::uint64_t, std::set<std::uint64_t>> vertex_map(
-        world, default_vertex);
-    do_streaming_analysis<EdgeGeneratorType>(world, vertex_map, params, output);
+    std::set<std::uint64_t> default_vertex;
+
+    if (params.cont == parameters_t::container::map) {
+      ygm::container::map<std::uint64_t, std::set<std::uint64_t>> vertex_map(
+          world, default_vertex);
+
+      do_streaming_analysis<EdgeGeneratorType>(world, vertex_map, params,
+                                               output);
+    } else if (params.cont == parameters_t::container::array) {
+      ygm::container::array<std::set<std::uint64_t>> vertex_array(
+          world, params.vertex_count, default_vertex);
+
+      do_streaming_analysis<EdgeGeneratorType>(world, vertex_array, params,
+                                               output);
+    }
   }
 
   if (params.pretty_print) {

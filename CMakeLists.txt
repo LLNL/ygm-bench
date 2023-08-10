@@ -52,18 +52,6 @@ else ()
     )
 endif ()
 
-# 
-#  cereal 
-#find_package(cereal QUIET) 
-#if (NOT cereal_FOUND)     
-#	set(JUST_INSTALL_CEREAL TRUE)
-#	FetchContent_Declare(cereal             
-#		GIT_REPOSITORY https://github.com/USCiLab/cereal.git             
-#		GIT_TAG master             
-#		)     
-#	FetchContent_MakeAvailable(cereal) 
-#endif ()
-
 #
 #  ygm
 find_package(ygm CONFIG)

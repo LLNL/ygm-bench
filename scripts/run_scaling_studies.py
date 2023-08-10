@@ -91,29 +91,12 @@ def run_experiments(args, passthrough_args):
             sbatch_script += "\n#SBATCH -t 1:00:00"
             sbatch_script += "\n#SBATCH -o " + output_filename
             sbatch_script += "\n#SBATCH -N " + str(num_nodes)
-            #sbatch_script += "\n#SBATCH --ntasks-per-node " + str(args.ntasks_per_node)
             sbatch_script += "\n#SBATCH -J ygm-bench"
             sbatch_script += "\n./run_experiments.py " + run_experiments_options + ' ' + ' '.join(passthrough_args)
             print(sbatch_script)
             proc = subprocess.run("sbatch", input=sbatch_script, text=True)
 
-            #salloc_command = "salloc"
-
-            #if args.account:
-            #    salloc_command += " -A " + arg.account
-
-            #salloc_command += " -N " + str(num_nodes)
-            #salloc_command += " --ntasks-per-node " + str(args.ntasks_per_node)
-            #salloc_command += " -ppdebug"
-
-            #command = salloc_command + " ./run_experiments.py" + run_experiments_options
-            #proc = subprocess.run(command.split())
-
         num_nodes *= 2
-
-    #input_str = b"#!/usr/bin/env bash\nsrun hostname"
-    #proc = subprocess.run("sbatch", input=input_str)
-
 
 def main():
     args, passthrough_args = parse_arguments()

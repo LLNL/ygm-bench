@@ -100,43 +100,33 @@ def parse_commands():
 
     # ATW_YGM arguments
     if (not args.no_atw_ygm):
-        #exp_commands["atw_ygm"] = ["../build/src/around_the_world_ygm"]
         exp_commands["atw_ygm"] = command_parameter_generator('../build/src/around_the_world_ygm')
         if args.num_trips:
-            #exp_commands["atw_ygm"] += [" -n", str(args.num_trips)]
             exp_commands["atw_ygm"].add_arg('-n', args.num_trips)
         if not args.no_wait_until:
             exp_commands["atw_ygm"].add_flag('-w')
 
     # ATW_MPI arguments
     if (not args.no_atw_mpi):
-        #exp_commands["atw_mpi"] = ["../build/src/around_the_world_mpi"]
         exp_commands["atw_mpi"] = command_parameter_generator('../build/src/around_the_world_mpi')
         if args.num_trips:
-            #exp_commands["atw_mpi"] += ["-n", str(args.num_trips)]
             exp_commands["atw_mpi"].add_arg('-n', args.num_trips)
 
     # HISTO_UNIFORM arguments
     if (not args.no_histo_uniform):
-        #exp_commands["histo_uniform"] = ["../build/src/histo_ygm"]
         exp_commands["histo_uniform"] = command_parameter_generator('../build/src/histo_ygm')
         if args.table_scale:
-            #exp_commands["histo_uniform"] += ["-s", str(args.table_scale)]
             exp_commands["histo_uniform"].add_arg('-s', args.table_scale)
         if args.histo_inserts_per_rank:
-            #exp_commands["histo_uniform"] += ["-i", str(args.histo_inserts_per_rank)]
             exp_commands["histo_uniform"].add_arg('-i', args.histo_inserts_per_rank)
 
     # HISTO_RMAT arguments
     if (not args.no_histo_rmat):
-        #exp_commands["histo_rmat"] = ["../build/src/histo_ygm", "-r"]
         exp_commands["histo_rmat"] = command_parameter_generator('../build/src/histo_ygm')
         exp_commands["histo_rmat"].add_required_flag("-r")
         if args.table_scale:
-            #exp_commands["histo_rmat"] += ["-s", str(args.table_scale)]
             exp_commands["histo_rmat"].add_arg("-s", args.table_scale)
         if args.histo_inserts_per_rank:
-            #exp_commands["histo_rmat"] += ["-i", str(args.histo_inserts_per_rank)]
             exp_commands["histo_rmat"].add_arg("-i", args.histo_inserts_per_rank)
 
     # HISTO_RMAT with reducing_adapter arguments
@@ -145,50 +135,37 @@ def parse_commands():
         exp_commands["histo_rmat_ra"].add_required_flag("-r")
         exp_commands["histo_rmat_ra"].add_required_flag("-a")
         if args.table_scale:
-            #exp_commands["histo_rmat"] += ["-s", str(args.table_scale)]
             exp_commands["histo_rmat_ra"].add_arg("-s", args.table_scale)
         if args.histo_inserts_per_rank:
-            #exp_commands["histo_rmat"] += ["-i", str(args.histo_inserts_per_rank)]
             exp_commands["histo_rmat_ra"].add_arg("-i", args.histo_inserts_per_rank)
 
     # AGUPS arguments
     if (not args.no_agups):
-        #exp_commands["agups"] = ["../build/src/agups_ygm"]
         exp_commands["agups"] = command_parameter_generator("../build/src/agups_ygm")
         if args.table_scale:
-            #exp_commands["agups"] += ["-s", str(args.table_scale)]
             exp_commands["agups"].add_arg("-s", args.table_scale)
         if args.agups_updaters_per_rank:
-            #exp_commands["agups"] += ["-u", str(args.agups_updaters_per_rank)]
             exp_commands["agups"].add_arg("-u", args.agups_updaters_per_rank)
         if args.agups_updater_lifetime:
-            #exp_commands["agups"] += ["-l", str(args.agups_updater_lifetime)]
             exp_commands["agups"].add_arg("-l", args.agups_updater_lifetime)
 
     # CC_RMAT arguments
     if (not args.no_cc_rmat):
-        #exp_commands["cc_rmat"] = ["../build/src/cc_ygm"]
         exp_commands["cc_rmat"] = command_parameter_generator("../build/src/cc_ygm")
         if args.cc_rmat_graph_scale:
-            #exp_commands["cc_rmat"] += ["-g", str(args.cc_rmat_graph_scale)]
             exp_commands["cc_rmat"].add_arg("-g", args.cc_rmat_graph_scale)
         elif args.cc_graph_scale:
-            #exp_commands["cc_rmat"] += ["-g", str(args.cc_graph_scale)]
             exp_commands["cc_rmat"].add_arg("-g", args.cc_graph_scale)
         if args.cc_edgefactor:
-            #exp_commands["cc_rmat"] += ["-e", str(args.cc_edgefactor)]
             exp_commands["cc_rmat"].add_arg("-e", args.cc_edgefactor)
 
     # CC_LINKED_LIST arguments
     if (not args.no_cc_linked_list):
-        #exp_commands["cc_linked_list"] = ["../build/src/cc_ygm", "-l"]
         exp_commands["cc_linked_list"] = command_parameter_generator("../build/src/cc_ygm")
         exp_commands["cc_linked_list"].add_required_flag("-l")
         if args.cc_linked_list_graph_scale:
-            #exp_commands["cc_linked_list"] += ["-g", str(args.cc_linked_list_graph_scale)]
             exp_commands["cc_linked_list"].add_arg("-g", args.cc_linked_list_graph_scale)
         elif args.cc_graph_scale:
-            #exp_commands["cc_linked_list"] += ["-g", str(args.cc_graph_scale)]
             exp_commands["cc_linked_list"].add_arg("-g", args.cc_graph_scale)
 
     # EMBED_YGM
@@ -207,25 +184,14 @@ def parse_commands():
     # Shared arguments
     if args.num_trials:
         for exp_name, command in exp_commands.items():
-            #exp_commands[exp_name] += ["-t", str(args.num_trials)]
             exp_commands[exp_name].add_required_arg("-t", args.num_trials)
     if args.pretty_print:
         for exp_name, command in exp_commands.items():
-            #exp_commands[exp_name] += ["-p"]
             exp_commands[exp_name].add_required_flag("-p")
     if args.output:
         output = args.output
     else:
         output = None
-
-    # Launcher arguments
-    #launcher = ["srun", "--exclusive"]
-    #if args.nodes:
-        #launcher += ["-N", str(args.nodes)]
-    #if args.ntasks_per_node:
-        #launcher += ["--ntasks-per-node", str(args.ntasks_per_node)]
-    #if args.account:
-        #launcher += ["-A", args.account]
 
     if args.ygm_comm_routing:
         routing_protocols = args.ygm_comm_routing

@@ -126,7 +126,7 @@ void run_atw(ygm::comm &world, const parameters_t &params) {
     }
 
     if (params.use_wait_until) {
-      world.wait_until([]() { return curr_trip >= s_params.num_trips; });
+      world.local_wait_until([]() { return curr_trip >= s_params.num_trips; });
     }
 
     world.barrier();

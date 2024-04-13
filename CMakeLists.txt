@@ -26,11 +26,11 @@ find_package(MPI)
 # supports Boost, we do not need to use the boost-cmake feature.
 set(Boost_NO_BOOST_CMAKE ON)
 
-find_package(Boost 1.75 QUIET)
+find_package(Boost 1.84 QUIET)
 if (NOT Boost_FOUND)
     FetchContent_Declare(
         Boost
-        URL https://boostorg.jfrog.io/artifactory/main/release/1.77.0/source/boost_1_77_0.tar.bz2
+        URL https://boostorg.jfrog.io/artifactory/main/release/1.84.0/source/boost_1_84_0.tar.bz2
     )
     FetchContent_GetProperties(Boost)
     if (Boost_POPULATED)
@@ -45,7 +45,7 @@ if (NOT Boost_FOUND)
     	)
     endif ()
     set(BOOST_ROOT ${boost_SOURCE_DIR})
-    find_package(Boost 1.75)
+    find_package(Boost 1.84)
 else ()
     message(STATUS ${PROJECT_NAME} " found Boost dependency: "
                    ${Boost_INCLUDE_DIR}

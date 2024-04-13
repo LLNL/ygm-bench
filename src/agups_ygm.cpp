@@ -111,9 +111,8 @@ class updater {
 struct recursive_functor {
  public:
   // Creates a copy of u because YGM passes arguments by const reference
-  void operator()(
-      ygm::ygm_ptr<ygm::container::array<uint64_t>::impl_type> parray,
-      const uint64_t index, uint64_t &value, updater u) {
+  void operator()(ygm::ygm_ptr<ygm::container::array<uint64_t>> parray,
+                  const uint64_t index, uint64_t &value, updater u) {
     u.update_state(value);
     value = u.get_state();
     u.increment_counter();

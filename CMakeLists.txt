@@ -6,7 +6,7 @@
 cmake_minimum_required(VERSION 3.14)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake") 
 project(ygm-bench         
-	VERSION 0.6         
+	VERSION 0.7         
 	DESCRIPTION "YGM Benchmarks"         
 	LANGUAGES CXX) 
 
@@ -46,7 +46,7 @@ if(NOT ygm_FOUND)
 	if(DEFINED ENV{YGM_BENCH_YGM_TAG})
 		set(YGM_TAG $ENV{YGM_BENCH_YGM_TAG})
 	else()
-		set(YGM_TAG "v0.6")
+		set(YGM_TAG "v0.7-dev")
 	endif()
 
 	FetchContent_Declare(

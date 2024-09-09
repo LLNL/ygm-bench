@@ -86,7 +86,7 @@ class updater {
   // Needs default constructor to send through YGM
   updater() {}
 
-  updater(uint64_t seed) : m_state(seed), m_counter(0) {}
+  updater(size_t seed) : m_state(seed), m_counter(0) {}
 
   void increment_counter() const { ++m_counter; }
 
@@ -94,31 +94,31 @@ class updater {
 
   uint32_t get_counter() const { return m_counter; }
 
-  uint64_t get_state() const { return m_state; }
+  size_t get_state() const { return m_state; }
 
   template <typename Archive>
   void serialize(Archive &ar) {
     ar(m_state, m_counter);
   }
 
-  void update_state(uint64_t value) const { m_state ^= value; }
+  void update_state(size_t value) const { m_state ^= value; }
 
  private:
-  mutable uint64_t m_state;
+  mutable size_t   m_state;
   mutable uint32_t m_counter;
 };
 
 struct recursive_functor {
  public:
   // Creates a copy of u because YGM passes arguments by const reference
-  void operator()(ygm::ygm_ptr<ygm::container::array<uint64_t>> parray,
-                  const uint64_t index, uint64_t &value, updater u) {
+  void operator()(ygm::ygm_ptr<ygm::container::array<size_t>> parray,
+                  const size_t index, size_t &value, updater u) const {
     u.update_state(value);
     value = u.get_state();
     u.increment_counter();
 
     if (u.is_alive()) {
-      uint64_t new_index = value & (parray->size() - 1);
+      size_t new_index = value & (parray->size() - 1);
       parray->async_visit(new_index, recursive_functor(), u);
     }
   }
@@ -130,8 +130,8 @@ int main(int argc, char **argv) {
 
     params = parse_cmd_line(argc, argv, world);
 
-    uint64_t global_table_size = ((uint64_t)1) << params.log_table_size;
-    ygm::container::array<uint64_t> arr(world, global_table_size);
+    size_t global_table_size = ((size_t)1) << params.log_table_size;
+    ygm::container::array<size_t> arr(world, global_table_size);
 
     boost::json::object output;
 
@@ -150,8 +150,8 @@ int main(int argc, char **argv) {
 
     parse_welcome(world, output);
 
-    std::mt19937                            gen(world.rank());
-    std::uniform_int_distribution<uint64_t> dist;
+    std::mt19937                          gen(world.rank());
+    std::uniform_int_distribution<size_t> dist;
 
     arr.for_all(
         [&dist, &gen](const auto index, auto &value) { value = dist(gen); });
@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
       ygm::timer update_timer{};
 
       for (auto &u : updater_vec) {
-        uint64_t first_index = u.get_state() & (arr.size() - 1);
+        size_t first_index = u.get_state() & (arr.size() - 1);
         arr.async_visit(first_index, recursive_functor(), u);
       }
 

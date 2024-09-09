@@ -8,6 +8,7 @@
 #include <utility.hpp>
 #include <ygm/comm.hpp>
 #include <ygm/container/array.hpp>
+#include <ygm/container/detail/base_async_reduce.hpp>
 #include <ygm/container/detail/reducing_adapter.hpp>
 #include <ygm/detail/ygm_cereal_archive.hpp>
 #include <ygm/utility.hpp>
@@ -126,11 +127,11 @@ template <typename Container>
 void run_reductions(ygm::comm &world, const std::vector<uint64_t> &indices,
                     Container &cont) {
   for (const auto &index : indices) {
-    if constexpr (ygm::container::check_ygm_container_type<
-                      Container, ygm::container::array_tag>()) {
-      cont.async_visit(index, [](const auto i, auto v) { ++v; });
-    } else {  // For reducing_adapter
+    if constexpr (ygm::container::detail::HasAsyncReduceWithoutReductionOp<
+                      Container>) {
       cont.async_reduce(index, 1);
+    } else {  // For reducing_adapter
+      cont.async_visit(index, [](const auto i, auto v) { ++v; });
     }
   }
 

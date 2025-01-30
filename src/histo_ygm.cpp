@@ -131,11 +131,23 @@ void run_reductions(ygm::comm &world, const std::vector<uint64_t> &indices,
                       Container>) {
       cont.async_reduce(index, 1);
     } else {  // For reducing_adapter
-      cont.async_visit(index, [](const auto i, auto v) { ++v; });
+      cont.async_visit(index, [](const auto i, auto &v) { ++v; });
     }
   }
 
   world.barrier();
+}
+
+template <typename Container>
+void check_counts(ygm::comm &world, Container &cont, int64_t local_count) {
+  int64_t local_insertions{0};
+
+  cont.for_all([&local_insertions](const auto &index, const auto &count) {
+    local_insertions += count;
+  });
+
+  YGM_ASSERT_RELEASE(ygm::sum(local_insertions, world) ==
+                     ygm::sum(local_count, world));
 }
 
 int main(int argc, char **argv) {
@@ -173,6 +185,8 @@ int main(int argc, char **argv) {
 
     for (int trial = 0; trial < params.num_trials; ++trial) {
       world.stats_reset();
+      arr.clear();
+      arr.resize(global_table_size);
 
       std::vector<uint64_t> indices =
           generate_indices(world, params.local_updates, params.log_table_size,
@@ -204,6 +218,8 @@ int main(int argc, char **argv) {
         trial_rate = params.local_updates * world.size() / trial_time /
                      (1000 * 1000 * 1000);
       }
+
+      check_counts(world, arr, params.local_updates);
 
       output["TIME"].as_array().emplace_back(trial_time);
       output["INSERTS_PER_SECOND(BILLIONS)"].as_array().emplace_back(

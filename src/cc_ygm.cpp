@@ -6,10 +6,9 @@
 #include <random>
 #include <rmat_edge_generator.hpp>
 #include <utility.hpp>
-#include <ygm/collective.hpp>
 #include <ygm/comm.hpp>
 #include <ygm/container/disjoint_set.hpp>
-#include <ygm/utility.hpp>
+#include <ygm/utility/timer.hpp>
 
 #include <boost/json/src.hpp>
 
@@ -174,7 +173,7 @@ int main(int argc, char **argv) {
       double trial_rate;
       world.barrier();
 
-      ygm::timer update_timer{};
+      ygm::utility::timer update_timer{};
 
       run_cc(world, edges, dset);
 

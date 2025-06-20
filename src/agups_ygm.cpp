@@ -8,7 +8,7 @@
 #include <ygm/comm.hpp>
 #include <ygm/container/array.hpp>
 #include <ygm/detail/ygm_cereal_archive.hpp>
-#include <ygm/utility.hpp>
+#include <ygm/utility/timer.hpp>
 
 struct parameters_t {
   int     log_table_size;
@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
 
       world.barrier();
 
-      ygm::timer update_timer{};
+      ygm::utility::timer update_timer{};
 
       for (auto &u : updater_vec) {
         size_t first_index = u.get_state() & (arr.size() - 1);

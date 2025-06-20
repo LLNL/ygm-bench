@@ -10,8 +10,9 @@
 #include <ygm/container/array.hpp>
 #include <ygm/container/detail/base_async_reduce.hpp>
 #include <ygm/container/detail/reducing_adapter.hpp>
+#include <ygm/container/map.hpp>
 #include <ygm/detail/ygm_cereal_archive.hpp>
-#include <ygm/utility.hpp>
+#include <ygm/utility/timer.hpp>
 
 #include <boost/json/src.hpp>
 
@@ -150,14 +151,39 @@ void check_counts(ygm::comm &world, Container &cont, int64_t local_count) {
                      ygm::sum(local_count, world));
 }
 
+std::tuple<long long, long, long> memory_usage(ygm::comm &world) {
+  std::ifstream status("/proc/self/status");
+  std::string   line;
+  int32_t       memoryUsage = 0;
+
+  while (std::getline(status, line)) {
+    if (line.find("VmRSS") == 0) {
+      size_t pos = line.find(":");
+      if (pos != std::string::npos) {
+        memoryUsage = std::stol(line.substr(pos + 1));
+      }
+    }
+  }
+
+  return std::make_tuple(ygm::sum((int64_t)memoryUsage, world),
+                         ygm::min(memoryUsage, world),
+                         ygm::max(memoryUsage, world));
+}
+
 int main(int argc, char **argv) {
   {
     ygm::comm world(&argc, &argv);
 
+    auto mem = memory_usage(world);
+    world.cout0("Startup memory: ", std::get<0>(mem));
+
     parameters_t params = parse_cmd_line(argc, argv, world);
 
     uint64_t global_table_size = ((uint64_t)1) << params.log_table_size;
-    ygm::container::array<uint64_t> arr(world, global_table_size);
+    // ygm::container::array<uint64_t> arr(world, global_table_size);
+    ygm::container::map<uint64_t, size_t> arr(world, global_table_size);
+    mem = memory_usage(world);
+    world.cout0("Array initialized memory: ", std::get<0>(mem));
 
     boost::json::object output;
 
@@ -186,31 +212,36 @@ int main(int argc, char **argv) {
     for (int trial = 0; trial < params.num_trials; ++trial) {
       world.stats_reset();
       arr.clear();
-      arr.resize(global_table_size);
+      // arr.resize(global_table_size);
 
       std::vector<uint64_t> indices =
           generate_indices(world, params.local_updates, params.log_table_size,
                            trial, params.dist);
 
+      mem = memory_usage(world);
+      world.cout0("Memory with indices: ", std::get<0>(mem));
+
       double trial_time;
       double trial_rate;
       world.barrier();
       if (params.use_reducing_adapter) {
+        /*
         auto reducing_arr = ygm::container::detail::make_reducing_adapter(
             arr, [](const uint64_t &a, const uint64_t &b) { return a + b; });
 
         world.barrier();
 
-        ygm::timer update_timer{};
+        ygm::utility::timer update_timer{};
 
         run_reductions(world, indices, reducing_arr);
 
         trial_time = update_timer.elapsed();
         trial_rate = params.local_updates * world.size() / trial_time /
                      (1000 * 1000 * 1000);
+                     */
       } else {
         world.barrier();
-        ygm::timer update_timer{};
+        ygm::utility::timer update_timer{};
 
         run_reductions(world, indices, arr);
 
@@ -218,6 +249,9 @@ int main(int argc, char **argv) {
         trial_rate = params.local_updates * world.size() / trial_time /
                      (1000 * 1000 * 1000);
       }
+
+      mem = memory_usage(world);
+      world.cout0("Memory after increments: ", std::get<0>(mem));
 
       check_counts(world, arr, params.local_updates);
 
@@ -227,6 +261,9 @@ int main(int argc, char **argv) {
 
       parse_stats(world, output);
     }
+
+    mem = memory_usage(world);
+    world.cout0("Memory after trials: ", std::get<0>(mem));
 
     if (params.pretty_print) {
       pretty_print(world.cout0(), output);

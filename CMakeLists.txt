@@ -98,7 +98,6 @@ function(setup_ygm_target exe_name)
 	target_link_libraries(${exe_name} PRIVATE ygm::ygm)
 	target_include_directories(${exe_name} PRIVATE "${PROJECT_SOURCE_DIR}/include")
 	target_include_directories(${exe_name} PRIVATE ${PROJECT_SOURCE_DIR}/include ${BOOST_INCLUDE_DIRS})
-	target_link_libraries(${exe_name} PRIVATE Boost::json Boost::unordered Boost::container)
 endfunction()
 
 function(setup_krowkee_target exe_name)

@@ -8,7 +8,6 @@ setup_ygm_target(agups_ygm)
 setup_ygm_target(histo_ygm)
 setup_ygm_target(cc_ygm)
 setup_ygm_target(rmat_example)
-setup_ygm_target(startup_memory)
 
 setup_ygm_target(around_the_world_mpi)
 

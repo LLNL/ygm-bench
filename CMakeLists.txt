@@ -6,13 +6,20 @@
 cmake_minimum_required(VERSION 3.14)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake") 
 project(ygm-bench         
-	VERSION 0.8
+	VERSION 0.9
 	DESCRIPTION "YGM Benchmarks"         
 	LANGUAGES CXX) 
 
 set(CMAKE_CXX_STANDARD 17) 
 
 include(FetchContent)
+
+#
+# FetchContent dependencies that can be overridden on the command line.
+#
+set(BOOST_FETCH_URL 
+    "https://github.com/boostorg/boost/releases/download/boost-1.87.0/boost-1.87.0-cmake.tar.gz" 
+    CACHE STRING "URL to fetch Boost tarball")
 
 #
 #  MPI
@@ -52,7 +59,7 @@ if(NOT ygm_FOUND)
 	if(DEFINED ENV{YGM_BENCH_YGM_TAG})
 		set(YGM_TAG $ENV{YGM_BENCH_YGM_TAG})
 	else()
-		set(YGM_TAG "v0.8")
+		set(YGM_TAG "v0.9-dev")
 	endif()
 
 	FetchContent_Declare(

@@ -11,4 +11,5 @@ setup_ygm_target(rmat_example)
 
 setup_ygm_target(around_the_world_mpi)
 
-setup_krowkee_target(embed_ygm)
+# Does not currently compile. Will revisit.
+#setup_krowkee_target(embed_ygm)

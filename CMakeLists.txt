@@ -6,7 +6,7 @@
 cmake_minimum_required(VERSION 3.14)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake") 
 project(ygm-bench         
-	VERSION 0.6         
+	VERSION 0.8
 	DESCRIPTION "YGM Benchmarks"         
 	LANGUAGES CXX) 
 
@@ -20,19 +20,25 @@ find_package(MPI)
 
 #
 # Boost
-include(setup_boost)
-prepare_fetchcontent_boost()
-set(FETCHCONTENT_QUIET FALSE)
-FetchContent_Declare(
-        Boost
-        GIT_REPOSITORY https://github.com/boostorg/boost.git
-        GIT_TAG boost-1.78.0
-        GIT_SUBMODULES ${BOOST_REQD_SUBMODULES}
-        GIT_PROGRESS TRUE
-        CONFIGURE_COMMAND ""  # tell CMake it's not a cmake project
-)
-FetchContent_MakeAvailable(Boost)
-get_boost_include_dirs()
+#
+if (NOT boost_POPULATED)
+    find_package(Boost 1.81)
+    if (Boost_FOUND)
+        message(STATUS ${PROJECT_NAME} " found boost include dirs: "
+                       ${Boost_INCLUDE_DIRS}
+        )
+    else ()
+        message(STATUS "Fetching Boost from source")
+        FetchContent_Declare(
+            Boost
+            URL ${BOOST_FETCH_URL}
+            DOWNLOAD_EXTRACT_TIMESTAMP ON
+        )
+        set(BOOST_INCLUDE_LIBRARIES json unordered container static_string)
+        FetchContent_MakeAvailable(Boost)
+    endif ()
+endif ()
+
 
 #
 #  ygm
@@ -46,7 +52,7 @@ if(NOT ygm_FOUND)
 	if(DEFINED ENV{YGM_BENCH_YGM_TAG})
 		set(YGM_TAG $ENV{YGM_BENCH_YGM_TAG})
 	else()
-		set(YGM_TAG "v0.6")
+		set(YGM_TAG "v0.8")
 	endif()
 
 	FetchContent_Declare(
@@ -92,7 +98,6 @@ function(setup_ygm_target exe_name)
 	target_link_libraries(${exe_name} PRIVATE ygm::ygm)
 	target_include_directories(${exe_name} PRIVATE "${PROJECT_SOURCE_DIR}/include")
 	target_include_directories(${exe_name} PRIVATE ${PROJECT_SOURCE_DIR}/include ${BOOST_INCLUDE_DIRS})
-	target_link_libraries(${exe_name} PRIVATE Boost::json)
 endfunction()
 
 function(setup_krowkee_target exe_name)

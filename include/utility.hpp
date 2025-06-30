@@ -19,7 +19,8 @@ void parse_welcome(ygm::comm &c, boost::json::object &o) {
 
   std::string line;
   while (std::getline(ss, line)) {
-    if (line.find("YGM_") != std::string::npos) {
+    if (line.find("YGM_") != std::string::npos ||
+        line.find("MPI_") != std::string::npos) {
       auto space_pos = line.find(" ");
       auto equal_pos = line.find("=");
 
@@ -151,4 +152,3 @@ std::vector<std::vector<T>> gather_vectors_rank_0(
 
   return to_return;
 }
-

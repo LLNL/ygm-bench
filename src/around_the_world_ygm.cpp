@@ -8,7 +8,7 @@
 #include <string>
 #include <utility.hpp>
 #include <ygm/comm.hpp>
-#include <ygm/utility.hpp>
+#include <ygm/utility/timer.hpp>
 
 #include <boost/json/src.hpp>
 
@@ -119,7 +119,7 @@ void run_atw(ygm::comm &world, const parameters_t &params) {
 
     world.barrier();
 
-    ygm::timer trip_timer{};
+    ygm::utility::timer trip_timer{};
 
     if (world.rank0()) {
       world.async(1, around_the_world_functor());

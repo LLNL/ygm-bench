@@ -31,7 +31,6 @@ function(prepare_fetchcontent_boost)
             "libs/mp11;"
             "libs/json;"
             "libs/property_tree;"
-            "libs/unordered;"
             "libs/interprocess;"
             "libs/optional;"
             "libs/any;"
@@ -67,7 +66,6 @@ function(get_boost_include_dirs)
             ${Boost_SOURCE_DIR}/libs/foreach/include
             ${Boost_SOURCE_DIR}/libs/iterator/include
             ${Boost_SOURCE_DIR}/libs/container/include
-            ${Boost_SOURCE_DIR}/libs/unordered/include
             ${Boost_SOURCE_DIR}/libs/iostreams/include
             ${Boost_SOURCE_DIR}/libs/system/include
             ${Boost_SOURCE_DIR}/libs/format/include

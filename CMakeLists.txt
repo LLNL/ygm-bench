@@ -52,7 +52,7 @@ if(NOT ygm_FOUND)
 	if(DEFINED ENV{YGM_BENCH_YGM_TAG})
 		set(YGM_TAG $ENV{YGM_BENCH_YGM_TAG})
 	else()
-		set(YGM_TAG "v0.8-dev")
+		set(YGM_TAG "v0.8")
 	endif()
 
 	FetchContent_Declare(
